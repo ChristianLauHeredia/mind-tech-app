@@ -24,7 +24,7 @@ export async function GET() {
     // Transform the data to match our interface
     const transformedData = data?.map(item => ({
       employee_id: item.employee_id,
-      skill_name: item.skills?.name || 'Unknown',
+      skill_name: Array.isArray(item.skills) ? (item.skills[0] as any)?.name || 'Unknown' : (item.skills as any)?.name || 'Unknown',
       proficiency_level: item.level || 1
     })) || [];
 

@@ -30,12 +30,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     
     // Transformar los datos para que sean más fáciles de usar
     const transformedData = data?.map(match => ({
-      employee_id: match.employees.id,
-      employee_name: `${match.employees.first_name} ${match.employees.last_name}`,
-      email: match.employees.email,
-      position: match.employees.position,
-      seniority: match.employees.seniority,
-      location: match.employees.location,
+      employee_id: (match.employees as any).id,
+      employee_name: `${(match.employees as any).first_name} ${(match.employees as any).last_name}`,
+      email: (match.employees as any).email,
+      position: (match.employees as any).position,
+      seniority: (match.employees as any).seniority,
+      location: (match.employees as any).location,
       score: match.score,
       summary: match.summary,
       reason_features: match.reason_features

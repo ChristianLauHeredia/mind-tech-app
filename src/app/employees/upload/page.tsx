@@ -151,8 +151,13 @@ export default function UploadCSV() {
                 className="form-input flex-1"
               />
               <button
-                onClick={handleUpload}
-                disabled={!csvData || loading}
+                onClick={() => {
+                  const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+                  if (input?.files?.[0]) {
+                    handleFileUpload({ target: input } as any);
+                  }
+                }}
+                disabled={loading}
                 className="btn btn-primary text-sm"
               >
                 {loading ? '⏳ Procesando...' : '🚀 Procesar CSV'}

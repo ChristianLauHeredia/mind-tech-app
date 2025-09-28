@@ -256,7 +256,7 @@ export default function RequestDetailPage() {
                         <div>
                           <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Seniority Detectado</dt>
                           <dd className="mt-1">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getSeniorityColor(request.parsed_skills.seniority)}`}>
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getSeniorityColor(request.parsed_skills.seniority || '')}`}>
                               {request.parsed_skills.seniority}
                             </span>
                           </dd>
@@ -269,8 +269,8 @@ export default function RequestDetailPage() {
                         <div>
                           <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Must Have</dt>
                           <dd className="flex flex-wrap gap-2">
-                            {request.parsed_skills.must_have.length > 0 ? (
-                              request.parsed_skills.must_have.map((skill, index) => (
+                            {(request.parsed_skills.must_have || []).length > 0 ? (
+                              (request.parsed_skills.must_have || []).map((skill, index) => (
                                 <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
                                   {skill}
                                 </span>
@@ -283,8 +283,8 @@ export default function RequestDetailPage() {
                         <div>
                           <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Nice to Have</dt>
                           <dd className="flex flex-wrap gap-2">
-                            {request.parsed_skills.nice_to_have.length > 0 ? (
-                              request.parsed_skills.nice_to_have.map((skill, index) => (
+                            {(request.parsed_skills.nice_to_have || []).length > 0 ? (
+                              (request.parsed_skills.nice_to_have || []).map((skill, index) => (
                                 <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
                                   {skill}
                                 </span>

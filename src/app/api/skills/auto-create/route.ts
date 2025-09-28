@@ -78,9 +78,9 @@ export async function POST(req: NextRequest) {
     }
 
     const results = {
-      created: [],
-      existing: [],
-      errors: []
+      created: [] as any[],
+      existing: [] as any[],
+      errors: [] as string[]
     };
 
     for (const skillName of skills) {

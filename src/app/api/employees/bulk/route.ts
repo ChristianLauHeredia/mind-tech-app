@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       return new Response('El archivo CSV debe tener al menos una fila de datos (además del header)', { status: 400 });
     }
 
-    const headers = lines[0].split(',').map(h => h.trim());
+    const headers = lines[0].split(',').map((h: string) => h.trim());
     const dataRows = lines.slice(1);
     
     let result = '';
@@ -123,8 +123,8 @@ async function handleCreateOperation(headers: string[], dataRows: string[]): Pro
 
     // Procesar skills si existen
     if (skills) {
-      const skillList = skills.split(',').map(s => s.trim()).filter(s => s);
-      skillList.forEach(skill => allSkills.add(skill));
+      const skillList = skills.split(',').map((s: string) => s.trim()).filter((s: string) => s);
+      skillList.forEach((skill: string) => allSkills.add(skill));
     }
 
     if (!errors.some(e => e.includes(`Fila ${rowNumber}`))) {
@@ -175,7 +175,7 @@ async function handleCreateOperation(headers: string[], dataRows: string[]): Pro
   let skillsAssigned = 0;
   for (const employee of payload) {
     if (employee.skills) {
-      const skillList = employee.skills.split(',').map(s => s.trim()).filter(s => s);
+      const skillList = employee.skills.split(',').map((s: string) => s.trim()).filter((s: string) => s);
       
       // Obtener el ID del empleado
       const { data: empData } = await sb
@@ -270,23 +270,20 @@ async function handleUpdateOperation(headers: string[], dataRows: string[]): Pro
     });
 
     try {
-      let query = sb.from('employees');
+      const id = rowData.id;
+      const email = rowData.email;
       
-      if (rowData.id) {
-        query = query.eq('id', rowData.id);
+      if (id) {
         delete rowData.id; // No actualizar el ID
+        const { error } = await sb.from('employees').update(rowData).eq('id', id);
+        if (error) throw error;
       } else {
-        query = query.eq('email', rowData.email);
         delete rowData.email; // No actualizar el email
+        const { error } = await sb.from('employees').update(rowData).eq('email', email);
+        if (error) throw error;
       }
 
-      const { error } = await query.update(rowData);
-
-      if (error) {
-        errors.push(`Fila ${rowNumber}: ${error.message}`);
-      } else {
-        updatedCount++;
-      }
+      updatedCount++;
     } catch (error) {
       errors.push(`Fila ${rowNumber}: Error actualizando empleado`);
     }
@@ -330,21 +327,15 @@ async function handleDeleteOperation(headers: string[], dataRows: string[]): Pro
     }
 
     try {
-      let query = sb.from('employees');
-      
       if (rowData.id) {
-        query = query.eq('id', rowData.id);
+        const { error } = await sb.from('employees').delete().eq('id', rowData.id);
+        if (error) throw error;
       } else {
-        query = query.eq('email', rowData.email);
+        const { error } = await sb.from('employees').delete().eq('email', rowData.email);
+        if (error) throw error;
       }
-
-      const { error } = await query.delete();
-
-      if (error) {
-        errors.push(`Fila ${rowNumber}: ${error.message}`);
-      } else {
-        deletedCount++;
-      }
+      
+      deletedCount++;
     } catch (error) {
       errors.push(`Fila ${rowNumber}: Error eliminando empleado`);
     }

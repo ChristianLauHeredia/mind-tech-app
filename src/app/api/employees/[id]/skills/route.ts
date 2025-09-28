@@ -31,7 +31,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const transformedData = data?.map(item => ({
       employee_id: item.employee_id,
       skill_id: item.skill_id,
-      skill_name: item.skills?.name || 'Unknown',
+      skill_name: Array.isArray(item.skills) ? (item.skills[0] as any)?.name || 'Unknown' : (item.skills as any)?.name || 'Unknown',
       proficiency_level: item.level || 1,
       years: item.years || 0
     })) || [];

@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
     // 5) Calculate scores for each employee
     const candidates: Candidate[] = [];
 
-    for (const employee of employeeMap.values()) {
+    for (const employee of Array.from(employeeMap.values())) {
       const matchMust = employee.skills.filter(skill => 
         normalizedMustHave.includes(skill)
       ).length;
