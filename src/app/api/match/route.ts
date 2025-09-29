@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       .select(`
         id, first_name, last_name, email, position, seniority, location,
         cv_index(plain_text),
-        cvs(drive_web_view_link)
+        cvs(*)
       `)
       .eq('active', true)
       .not('cv_index.plain_text', 'is', null);
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
           position: emp.position,
           seniority: emp.seniority,
           location: emp.location,
-          cv_link: emp.cvs?.[0]?.drive_web_view_link || null,
+          cv_link: emp.cvs?.[0]?.link || null,
           skills: []
         });
       }
