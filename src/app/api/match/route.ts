@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
           position: emp.position,
           seniority: emp.seniority,
           location: emp.location,
-          cv_link: emp.cvs?.[0]?.link || null,
+          cv_link: emp.cvs?.[0]?.url || null,
           skills: []
         });
       }
