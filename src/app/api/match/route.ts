@@ -3,9 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import OpenAI from 'openai';
 
-const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
-
 // Input validation schema
 const MatchRequestSchema = z.object({
   role: z.string().min(1),
@@ -43,6 +40,13 @@ interface Candidate {
 
 export async function POST(req: NextRequest) {
   try {
+    // Validar configuración requerida
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return Response.json({ 
+        error: 'Database not configured. Please configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.' 
+      }, { status: 500 });
+    }
+
     // 1) Validate input with zod
     const body = await req.json();
     const validatedInput: MatchRequest = MatchRequestSchema.parse(body);
@@ -53,25 +57,40 @@ export async function POST(req: NextRequest) {
     const normalizedMustHave = must_have.map(skill => skill.toLowerCase());
     const normalizedNiceToHave = nice_to_have.map(skill => skill.toLowerCase());
 
-    // 3) Single query to get employees with skills and CV links
-    const { data: rawData, error } = await sb
+    // 3) Query database para obtener empleados con CVs
+    const sb = createClient(
+      process.env.SUPABASE_URL!, 
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    
+    const openai = new OpenAI({ 
+      apiKey: process.env.OPENAI_API_KEY || undefined 
+    });
+
+    const result = await sb
       .from('employees')
       .select(`
         id, first_name, last_name, email, position, seniority, location,
-        employee_skills!inner(skills(name)),
+        cv_index(plain_text),
         cvs(drive_web_view_link)
       `)
-      .eq('active', true);
+      .eq('active', true)
+      .not('cv_index.plain_text', 'is', null);
 
-    if (error) {
-      console.error('Database error:', error);
-      return new Response('Database error', { status: 500 });
+    if (result.error) {
+      console.error('Database query error:', result.error);
+      return Response.json({ error: 'Database query failed' }, { status: 500 });
     }
 
-    // 4) Group by employee and calculate scores
+    const rawData = result.data || [];
+    if (rawData.length === 0) {
+      return Response.json({ candidates: [] });
+    }
+
+    // 4) Extract skills from CV text and group by employee
     const employeeMap = new Map<string, EmployeeWithSkills>();
 
-    rawData?.forEach((emp: any) => {
+    rawData.forEach((emp: any) => {
       if (!employeeMap.has(emp.id)) {
         employeeMap.set(emp.id, {
           id: emp.id,
@@ -86,13 +105,36 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Add skill if it exists
-      if (emp.employee_skills?.[0]?.skills?.name) {
-        const skillName = emp.employee_skills[0].skills.name.toLowerCase();
+      // Extract skills from CV text
+      if (emp.cv_index?.plain_text) {
+        const cvText = emp.cv_index.plain_text.toLowerCase();
         const employee = employeeMap.get(emp.id)!;
-        if (!employee.skills.includes(skillName)) {
-          employee.skills.push(skillName);
-        }
+        
+        // Common tech skills to look for in CV
+        const techSkills = [
+          'react', 'vue', 'angular', 'javascript', 'typescript', 'node.js', 'next.js',
+          'python', 'django', 'flask', 'fastapi', 'java', 'spring', 'c#', '.net',
+          'php', 'laravel', 'ruby', 'rails', 'go', 'rust', 'express',
+          'postgresql', 'mysql', 'mongodb', 'redis', 'elasticsearch', 'sqlite',
+          'docker', 'kubernetes', 'aws', 'azure', 'gcp', 'terraform', 'ansible',
+          'jenkins', 'gitlab ci', 'github actions', 'nginx', 'apache',
+          'react native', 'flutter', 'ios', 'android', 'swift', 'kotlin',
+          'tensorflow', 'pytorch', 'scikit-learn', 'pandas', 'numpy',
+          'figma', 'sketch', 'adobe', 'photoshop', 'illustrator',
+          'jest', 'cypress', 'selenium', 'testing', 'unit test', 'integration test',
+          'html', 'css', 'sass', 'scss', 'tailwind', 'bootstrap', 'jquery',
+          'git', 'github', 'gitlab', 'bitbucket', 'jira', 'confluence',
+          'agile', 'scrum', 'kanban', 'ci/cd', 'devops', 'microservices',
+          'rest api', 'graphql', 'websocket', 'oauth', 'jwt', 'firebase',
+          'supabase', 'vercel', 'netlify', 'heroku', 'digital ocean'
+        ];
+
+        // Extract skills found in CV text
+        techSkills.forEach(skill => {
+          if (cvText.includes(skill) && !employee.skills.includes(skill)) {
+            employee.skills.push(skill);
+          }
+        });
       }
     });
 
@@ -136,8 +178,8 @@ export async function POST(req: NextRequest) {
     candidates.sort((a, b) => b.score - a.score);
     const topCandidates = candidates.slice(0, 5);
 
-    // 7) Generate summaries if requested
-    if (withSummary && topCandidates.length > 0) {
+    // 7) Generate summaries if requested and OpenAI is available
+    if (withSummary && topCandidates.length > 0 && process.env.OPENAI_API_KEY) {
       try {
         const summaries = await Promise.all(
           topCandidates.map(async (candidate) => {
@@ -183,11 +225,13 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return new Response(`Invalid input: ${error.errors.map(e => e.message).join(', ')}`, { status: 400 });
+      return Response.json({ 
+        error: `Invalid input: ${error.errors.map(e => e.message).join(', ')}` 
+      }, { status: 400 });
     }
     
     console.error('Match endpoint error:', error);
-    return new Response('Internal server error', { status: 500 });
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

@@ -1,9 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+// Solo crear cliente si tenemos variables de entorno válidas
+let supabase: any = null;
+if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
 
 async function getDashboardStats() {
   try {
+    if (!supabase) {
+      throw new Error('Database not configured');
+    }
+
     // Get employees count
     const { count: employeesCount, error: employeesError } = await supabase
       .from('employees')
