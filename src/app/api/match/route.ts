@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       .select(`
         id, first_name, last_name, email, position, seniority, location,
         cv_index(plain_text),
-        cvs(*)
+        cvs(url)
       `)
       .eq('active', true)
       .not('cv_index.plain_text', 'is', null);
