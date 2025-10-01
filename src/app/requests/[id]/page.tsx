@@ -98,18 +98,8 @@ export default function RequestDetailPage() {
         withSummary: true
       };
       
-      const response = await fetch('/api/match', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(matchData)
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        alert(`✅ Encontrados ${data.candidates.length} candidatos`);
-      } else {
-        alert('❌ Error ejecutando matching');
-      }
+      // TODO: Esta funcionalidad ahora la maneja un agente externo
+      alert('⚠️ Matching será manejado por un agente externo');
     } catch (error) {
       console.error('Error:', error);
       alert('❌ Error ejecutando matching');

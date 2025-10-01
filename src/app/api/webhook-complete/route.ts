@@ -63,20 +63,21 @@ export async function POST(req: NextRequest) {
     // 1. Parse the text
     const parsedData = parseText(text);
     
-    // 2. Find matches
-    const matchResponse = await fetch(`${req.nextUrl.origin}/api/match`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        role: parsedData.role,
-        seniority: parsedData.seniority,
-        must_have: parsedData.must_have,
-        nice_to_have: parsedData.nice_to_have,
-        withSummary: false
-      })
-    });
+    // 2. Find matches - TODO: Esta funcionalidad ahora la maneja un agente externo
+    // const matchResponse = await fetch(`${req.nextUrl.origin}/api/match`, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({
+    //     role: parsedData.role,
+    //     seniority: parsedData.seniority,
+    //     must_have: parsedData.must_have,
+    //     nice_to_have: parsedData.nice_to_have,
+    //     withSummary: false
+    //   })
+    // });
     
-    const matchData = await matchResponse.json();
+    // const matchData = await matchResponse.json();
+    const matchData = { candidates: [] };
     
     // 3. Save request
     const requestData = {
@@ -122,20 +123,21 @@ export async function GET(req: NextRequest) {
     // 1. Parse the text
     const parsedData = parseText(text);
     
-    // 2. Find matches
-    const matchResponse = await fetch(`${req.nextUrl.origin}/api/match`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        role: parsedData.role,
-        seniority: parsedData.seniority,
-        must_have: parsedData.must_have,
-        nice_to_have: parsedData.nice_to_have,
-        withSummary: false
-      })
-    });
+    // 2. Find matches - TODO: Esta funcionalidad ahora la maneja un agente externo
+    // const matchResponse = await fetch(`${req.nextUrl.origin}/api/match`, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({
+    //     role: parsedData.role,
+    //     seniority: parsedData.seniority,
+    //     must_have: parsedData.must_have,
+    //     nice_to_have: parsedData.nice_to_have,
+    //     withSummary: false
+    //   })
+    // });
     
-    const matchData = await matchResponse.json();
+    // const matchData = await matchResponse.json();
+    const matchData = { candidates: [] };
     
     // 3. Save request
     const requestData = {

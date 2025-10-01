@@ -83,10 +83,18 @@ export default function EmployeesPage() {
     }
   };
 
+  const refreshData = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchEmployees(),
+      fetchEmployeeSkills(),
+      fetchCVs()
+    ]);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    fetchEmployees();
-    fetchEmployeeSkills();
-    fetchCVs();
+    refreshData();
   }, []);
 
   const handleDelete = async (id: string) => {
@@ -232,6 +240,13 @@ export default function EmployeesPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button 
+            onClick={refreshData}
+            disabled={loading}
+            className="btn btn-secondary text-sm"
+          >
+            {loading ? '⏳ Actualizando...' : '🔄 Actualizar'}
+          </button>
           <button onClick={exportToCSV} className="btn btn-secondary text-sm">
             📤 Exportar CSV
           </button>

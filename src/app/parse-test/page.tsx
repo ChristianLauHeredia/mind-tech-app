@@ -11,19 +11,22 @@ export default function ParseTest() {
     
     setLoading(true);
     try {
-      const response = await fetch('/api/parse', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      });
+      // TODO: Esta funcionalidad ahora la maneja un agente externo
+      alert('⚠️ Parse será manejado por un agente externo');
+      return;
+      // const response = await fetch('/api/parse', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ text })
+      // });
       
-      if (response.ok) {
-        const data = await response.json();
-        setResult(data);
-      } else {
-        const error = await response.text();
-        setResult({ error });
-      }
+      // if (response.ok) {
+      //   const data = await response.json();
+      //   setResult(data);
+      // } else {
+      //   const error = await response.text();
+      //   setResult({ error });
+      // }
     } catch (err) {
       setResult({ error: 'Network error' });
     } finally {

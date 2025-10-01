@@ -153,6 +153,40 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
     });
   };
 
+  const handleReindexCV = async () => {
+    if (!confirm('¿Re-indexar el CV de este empleado? Esto extraerá y analizará el contenido nuevamente.')) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const response = await fetch('/api/cv-index', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          employee_id: params.id
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert(`CV re-indexado exitosamente. Fecha: ${result.indexed_at || result.last_indexed_at || 'Ahora'}`);
+        // Refresh page to show updated data
+        window.location.reload();
+      } else {
+        alert(`Error al re-indexar CV: ${result.error || 'Error desconocido'}`);
+      }
+    } catch (error) {
+      console.error('Error re-indexing CV:', error);
+      alert('Error de conexión al re-indexar CV');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -313,17 +347,39 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
               
               <div className="sm:col-span-2">
                 <label className="form-label">CV URL</label>
-                <input
-                  type="url"
-                  name="cv_url"
-                  value={formData.cv_url}
-                  onChange={handleChange}
-                  className="form-input"
-                  placeholder="https://drive.google.com/file/d/.../view"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    name="cv_url"
+                    value={formData.cv_url}
+                    onChange={handleChange}
+                    className="form-input flex-1"
+                    placeholder="https://drive.google.com/file/d/.../view"
+                  />
+                  {cv && (
+                    <button
+                      type="button"
+                      onClick={handleReindexCV}
+                      disabled={saving}
+                      className="btn btn-outline btn-secondary whitespace-nowrap"
+                    >
+                      🔄 Re-indexar CV
+                    </button>
+                  )}
+                </div>
                 <p className="text-sm text-gray-500 mt-1">
                   URL completa del CV (Google Drive, Dropbox, etc.)
                 </p>
+                {cv && (
+                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                    <p className="text-sm text-blue-700">
+                      <strong>CV actual:</strong> <a href={cv.url} target="_blank" rel="noopener noreferrer" className="underline">{cv.url}</a>
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      Haz clic en "Re-indexar CV" para actualizar skills desde Drive automáticamente
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
