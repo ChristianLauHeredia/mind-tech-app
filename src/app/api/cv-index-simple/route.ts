@@ -32,11 +32,23 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'cv_data must be valid JSON string' }, { status: 400 });
     }
 
-    // Required fields validation
-    if (!parsedCvData.role || !parsedCvData.seniority || !Array.isArray(parsedCvData.must_have)) {
+    // Required fields validation - accept both 'must_have' and 'skills'
+    const hasRole = parsedCvData.role;
+    const hasSeniority = parsedCvData.seniority;
+    const hasMustHave = Array.isArray(parsedCvData.must_have);
+    const hasSkills = Array.isArray(parsedCvData.skills);
+    
+    if (!hasRole || !hasSeniority || (!hasMustHave && !hasSkills)) {
       return Response.json({ 
-        error: 'cv_data must include: role, seniority, must_have (array)' 
+        error: 'cv_data must include: role, seniority, and either must_have (array) or skills (array)' 
       }, { status: 400 });
+    }
+
+    // Normalize the data structure - convert 'skills' to 'must_have' if needed
+    if (hasSkills && !hasMustHave) {
+      parsedCvData.must_have = parsedCvData.skills;
+      delete parsedCvData.skills;
+      cv_data = JSON.stringify(parsedCvData); // Update the cv_data string
     }
 
     console.log(`📋 Indexing CV for employee ${employee_id}`);
