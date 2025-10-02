@@ -67,7 +67,29 @@ export async function POST(req: NextRequest) {
 
     if (indexError) {
       console.error('CV index error:', indexError);
-      return Response.json({ error: 'Failed to save CV index' }, { status: 500 });
+      
+      // Provide more specific error messages
+      if (indexError.code === '23503') {
+        return Response.json({ 
+          error: `Employee ID ${employee_id} does not exist in employees table`,
+          code: 'employee_not_found',
+          details: indexError.message
+        }, { status: 400 });
+      }
+      
+      if (indexError.code === '22P02') {
+        return Response.json({ 
+          error: `Invalid UUID format for employee_id: ${employee_id}`,
+          code: 'invalid_uuid',
+          details: indexError.message
+        }, { status: 400 });
+      }
+      
+      return Response.json({ 
+        error: 'Failed to save CV index',
+        details: indexError.message,
+        code: indexError.code
+      }, { status: 500 });
     }
 
     console.log(`✅ CV indexed successfully for employee ${employee_id}`);
