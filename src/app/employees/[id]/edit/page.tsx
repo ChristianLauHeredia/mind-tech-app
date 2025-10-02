@@ -168,15 +168,26 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
     showToast('🤖 Procesando CV con agente n8n...', 'info');
 
     try {
-      // First check if employee has CV
-      const cvResponse = await fetch(`/api/employees/${params.id}/cv`);
+      // Use the URL from the form if available, otherwise check existing CV
+      let cvUrl = formData.cv_url?.trim();
       
-      if (!cvResponse.ok) {
-        showToast('❌ No se encontró CV para este empleado', 'error');
-        return;
+      if (!cvUrl) {
+        // Fallback: check existing CV in database
+        const cvResponse = await fetch(`/api/employees/${params.id}/cv`);
+        
+        if (!cvResponse.ok) {
+          showToast('❌ No se encontró CV para este empleado', 'error');
+          return;
+        }
+
+        const cvData = await cvResponse.json();
+        cvUrl = cvData.url;
       }
 
-      const cvData = await cvResponse.json();
+      if (!cvUrl?.trim()) {
+        showToast('❌ No hay URL de CV disponible para indexar', 'error');
+        return;
+      }
       
       // Trigger n8n agent directly
       const agentResponse = await fetch('https://laucho.app.n8n.cloud/webhook/mind-intake', {
@@ -186,7 +197,7 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
         },
         body: JSON.stringify({
           employee_id: params.id,
-          cv_url: cvData.url,
+          cv_url: cvUrl,
           action: 'extract_cv_data'
         }),
       });
@@ -393,12 +404,14 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
                     className="form-input flex-1"
                     placeholder="https://drive.google.com/file/d/.../view"
                   />
-                  {cv && (
+                  {(cv || formData.cv_url) && formData.cv_url?.trim() && (
                     <button
                       type="button"
                       onClick={handleReindexCV}
-                      disabled={saving}
-                      className="btn btn-outline btn-secondary whitespace-nowrap"
+                      disabled={saving || !formData.cv_url?.trim()}
+                      className={`btn btn-outline btn-secondary whitespace-nowrap ${
+                        !formData.cv_url?.trim() ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                     >
                       🔄 Re-indexar CV
                     </button>
