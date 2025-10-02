@@ -39,6 +39,16 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [employee, setEmployee] = useState<Employee | null>(null);
+
+  // Helper function for toast notifications
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const toast = document.createElement('div');
+    const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+    toast.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-2 rounded shadow-lg z-50`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  };
   const [cv, setCv] = useState<CV | null>(null);
   const [formData, setFormData] = useState<EmployeeFormData>({
     first_name: '',
@@ -74,7 +84,7 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
             active: data.active
           });
         } else {
-          alert('Empleado no encontrado');
+          showToast('❌ Empleado no encontrado', 'error');
           router.push('/employees');
           return;
         }
@@ -91,7 +101,7 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
         }
       } catch (error) {
         console.error('Error fetching employee:', error);
-        alert('Error al cargar empleado');
+        showToast('❌ Error al cargar empleado', 'error');
       } finally {
         setLoading(false);
       }
@@ -115,7 +125,7 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
 
       if (!response.ok) {
         const error = await response.text();
-        alert(`Error: ${error}`);
+        showToast(`❌ Error: ${error}`, 'error');
         return;
       }
 
@@ -131,7 +141,7 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
 
         if (!cvResponse.ok) {
           const error = await cvResponse.text();
-          alert(`Error actualizando CV: ${error}`);
+          showToast(`❌ Error actualizando CV: ${error}`, 'error');
           return;
         }
       }
@@ -139,7 +149,7 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
       router.push('/employees');
     } catch (error) {
       console.error('Error updating employee:', error);
-      alert('Error al actualizar empleado');
+      showToast('❌ Error al actualizar empleado', 'error');
     } finally {
       setSaving(false);
     }
@@ -154,34 +164,61 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
   };
 
   const handleReindexCV = async () => {
-    if (!confirm('¿Re-indexar el CV de este empleado? Esto extraerá y analizará el contenido nuevamente.')) {
-      return;
-    }
-
     setSaving(true);
+    showToast('🤖 Procesando CV con agente n8n...', 'info');
+
     try {
-      const response = await fetch('/api/cv-index', {
+      // First check if employee has CV
+      const cvResponse = await fetch(`/api/employees/${params.id}/cv`);
+      
+      if (!cvResponse.ok) {
+        showToast('❌ No se encontró CV para este empleado', 'error');
+        return;
+      }
+
+      const cvData = await cvResponse.json();
+      
+      // Trigger n8n agent directly
+      const agentResponse = await fetch('https://laucho.app.n8n.cloud/webhook/mind-intake', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          employee_id: params.id
+          employee_id: params.id,
+          cv_url: cvData.url,
+          action: 'extract_cv_data'
         }),
       });
 
-      const result = await response.json();
+      if (agentResponse.ok) {
+        const agentResult = await agentResponse.json();
+        
+        // Store the CV data
+        const indexResponse = await fetch('/api/cv-index-simple', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            employee_id: params.id,
+            cv_data: JSON.stringify(agentResult.cv_data)
+          }),
+        });
 
-      if (response.ok) {
-        alert(`CV re-indexado exitosamente. Fecha: ${result.indexed_at || result.last_indexed_at || 'Ahora'}`);
-        // Refresh page to show updated data
-        window.location.reload();
+        if (indexResponse.ok) {
+          showToast('✅ CV re-indexado exitosamente', 'success');
+          // Refresh page to show updated data
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          showToast('❌ Error al guardar datos del CV', 'error');
+        }
       } else {
-        alert(`Error al re-indexar CV: ${result.error || 'Error desconocido'}`);
+        showToast('❌ Error al procesar CV con agente', 'error');
       }
     } catch (error) {
       console.error('Error re-indexing CV:', error);
-      alert('Error de conexión al re-indexar CV');
+      showToast('❌ Error de conexión al re-indexar CV', 'error');
     } finally {
       setSaving(false);
     }
