@@ -14,7 +14,8 @@ interface CVIndexRequest {
 export async function POST(req: NextRequest) {
   try {
     const body: CVIndexRequest = await req.json();
-    const { employee_id, cv_data } = body;
+    const { employee_id, cv_data: originalCvData } = body;
+    let cv_data = originalCvData;
 
     if (!employee_id) {
       return Response.json({ error: 'employee_id is required' }, { status: 400 });
