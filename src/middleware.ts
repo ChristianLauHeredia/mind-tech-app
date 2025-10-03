@@ -6,4 +6,4 @@ export function middleware(req: NextRequest) {
   if (u !== process.env.BASIC_AUTH_USER || p !== process.env.BASIC_AUTH_PASS) return new NextResponse('Unauthorized', { status: 401 });
   return NextResponse.next();
 }
-export const config = { matcher: ['/((?!health|api/public|api/match-test).*)'] };
+export const config = { matcher: ['/((?!health|api/public).*)'] };
