@@ -336,7 +336,7 @@ export default function SearchMatchesPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={clearSearch}
                   disabled={loading}
@@ -365,7 +365,7 @@ export default function SearchMatchesPage() {
                       Procesando...
                     </>
                   ) : (
-                    `🔍 Buscar Matches ${selectedFile ? '(con archivo)' : ''}`
+                    '🔍 Buscar Matches'
                   )}
                 </button>
               </div>
@@ -498,12 +498,12 @@ export default function SearchMatchesPage() {
         {/* Debug Status */}
         <div className="bg-blue-50 rounded-lg p-4">
           <h3 className="font-medium text-blue-900 mb-2">🔧 Estado del formulario</h3>
-          <p className="text-sm text-blue-800">
-            <strong>loading:</strong> {loading ? 'Sí' : 'No'} | 
-            <strong> searchText:</strong> "{searchText}" ({searchText.length} chars) | 
-            <strong> selectedFile:</strong> {selectedFile ? `"${selectedFile.name}"` : 'Ninguno'} |
-            <strong> botón activo:</strong> {(!searchText.trim() && !selectedFile) || loading ? 'No' : 'Sí'}
-          </p>
+          <div className="text-sm text-blue-800 space-y-1">
+            <div><strong>loading:</strong> {loading ? 'Sí' : 'No'}</div>
+            <div><strong>searchText:</strong> "{searchText}" ({searchText.length} chars)</div>
+            <div><strong>selectedFile:</strong> {selectedFile ? `"${selectedFile.name}"` : 'Ninguno'}</div>
+            <div><strong>botón activo:</strong> {(!searchText.trim() && !selectedFile) || loading ? '❌ No' : '✅ Sí'}</div>
+          </div>
         </div>
 
         {/* API Info */}
