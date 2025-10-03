@@ -72,14 +72,11 @@ export default function SearchMatchesPage() {
     try {
       showToast('🔍 Buscando matches...', 'info');
 
-      const response = await fetch('https://laucho.app.n8n.cloud/webhook-test/mind-intake', {
+      const response = await fetch(`https://laucho.app.n8n.cloud/webhook-test/mind-intake?text=${encodeURIComponent(searchText.trim())}`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
         },
-        body: new URLSearchParams({
-          text: searchText.trim()
-        }),
       });
 
       if (!response.ok) {
