@@ -321,11 +321,11 @@ export default function SearchMatchesPage() {
     try {
       showToast('📋 Cargando última búsqueda...', 'info');
       
-      // Try both with and without credentials
-      const response = await fetch('/api/requests', {
+      // Fetch with proper headers
+      const response = await fetch('/api/requests?limit=1&offset=0', {
         credentials: 'include',
         headers: {
-          'Authorization': 'Basic ' + btoa('admin:password123')
+          'Authorization': 'Basic ' + btoa(`${process.env.NEXT_PUBLIC_BASIC_AUTH_USER}:${process.env.NEXT_PUBLIC_BASIC_AUTH_PASS}`)
         }
       });
       
@@ -333,13 +333,13 @@ export default function SearchMatchesPage() {
         const data = await response.json();
         console.log('📋 Raw API response:', data);
         
-        if (data.requests && data.requests.length > 0) {
-          const latestRequest = data.requests[0]; // El más reciente
+        if (data.items && data.items.length > 0) {
+          const latestRequest = data.items[0]; // El más reciente
           console.log('📋 Latest request loaded:', latestRequest);
           setLastRequest(latestRequest);
-          showToast(`✅ Cargados ${latestRequest.candidates?.length || 0} candidatos de la última búsqueda`, 'success');
+          showToast(`✅ Búsqueda guardada: ${latestRequest.candidates?.length || 0} candidatos encontrados (ID: ${latestRequest.id?.substring(0, 8)}...)`, 'success');
         } else {
-          showToast('❌ No hay requests disponibles', 'error');
+          showToast('ℹ️ No hay búsquedas guardadas aún', 'info');
         }
       } else {
         const errorText = await response.text();
