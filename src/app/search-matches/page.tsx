@@ -44,7 +44,6 @@ export default function SearchMatchesPage() {
     const file = event.target?.files?.[0];
     if (!file) return;
     
-    console.log('📄 File selected:', { name: file.name, size: file.size, type: file.type });
     
     // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
@@ -357,7 +356,6 @@ export default function SearchMatchesPage() {
                   onClick={handleSearch}
                   disabled={loading || (!searchText.trim() && !selectedFile)}
                   className="btn btn-primary"
-                  title={`Estado: loading=${loading}, hasText=${!!searchText.trim()}, hasFile=${!!selectedFile}`}
                 >
                   {loading ? (
                     <>
@@ -495,26 +493,6 @@ export default function SearchMatchesPage() {
           </div>
         )}
 
-        {/* Debug Status */}
-        <div className="bg-blue-50 rounded-lg p-4">
-          <h3 className="font-medium text-blue-900 mb-2">🔧 Estado del formulario</h3>
-          <div className="text-sm text-blue-800 space-y-1">
-            <div><strong>loading:</strong> {loading ? 'Sí' : 'No'}</div>
-            <div><strong>searchText:</strong> "{searchText}" ({searchText.length} chars)</div>
-            <div><strong>selectedFile:</strong> {selectedFile ? `"${selectedFile.name}"` : 'Ninguno'}</div>
-            <div><strong>botón activo:</strong> {(!searchText.trim() && !selectedFile) || loading ? '❌ No' : '✅ Sí'}</div>
-          </div>
-        </div>
-
-        {/* API Info */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="font-medium text-gray-900 mb-2">🔌 Información de la conexión</h3>
-          <p className="text-sm text-gray-600">
-            Esta página se conecta directamente al webhook n8n{' '}
-            <code className="bg-gray-200 px-1 rounded">webhook-test/mind-intake</code> y procesa 
-            la respuesta para mostrar entre 0-5 matches encontrados.
-          </p>
-        </div>
       </div>
   );
 }
