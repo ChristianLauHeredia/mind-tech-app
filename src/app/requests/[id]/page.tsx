@@ -2,6 +2,21 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 
+interface Candidate {
+  employee_id: string;
+  name?: string;
+  email?: string;
+  seniority?: string;
+  location?: string;
+  summary?: string;
+  score?: number;
+  match_details?: {
+    matched_skills?: string[];
+    seniority_match?: boolean;
+    role_match?: boolean;
+  };
+}
+
 interface Request {
   id: string;
   requester: string;
@@ -18,29 +33,27 @@ interface Request {
   seniority_hint?: string;
   role_hint?: string;
   created_at: string;
+  candidates?: Candidate[];
 }
 
 export default function RequestDetailPage() {
   const params = useParams();
   const [request, setRequest] = useState<Request | null>(null);
   const [loading, setLoading] = useState(true);
-  const [matches, setMatches] = useState<any[]>([]);
-  const [matchingLoading, setMatchingLoading] = useState(false);
 
   useEffect(() => {
     const fetchRequest = async () => {
       try {
-        const response = await fetch(`/api/requests/${params.id}`);
+        // Fetch from /api/requests/${id} endpoint
+        const auth = btoa(`${process.env.NEXT_PUBLIC_BASIC_AUTH_USER}:${process.env.NEXT_PUBLIC_BASIC_AUTH_PASS}`);
+        const response = await fetch(`/api/requests/${params.id}`, {
+          headers: {
+            'Authorization': `Basic ${auth}`
+          }
+        });
         if (response.ok) {
           const data = await response.json();
           setRequest(data);
-          
-          // También buscar matches si existen
-          const matchesResponse = await fetch(`/api/requests/${params.id}/matches`);
-          if (matchesResponse.ok) {
-            const matchesData = await matchesResponse.json();
-            setMatches(matchesData);
-          }
         }
       } catch (error) {
         console.error('Error fetching request:', error);
@@ -85,28 +98,6 @@ export default function RequestDetailPage() {
     }
   };
 
-  const handleMatching = async () => {
-    if (!request) return;
-    
-    setMatchingLoading(true);
-    try {
-      const matchData = {
-        role: request.parsed_skills?.role || request.role_hint,
-        seniority: request.parsed_skills?.seniority || request.seniority_hint,
-        must_have: request.parsed_skills?.must_have || [],
-        nice_to_have: request.parsed_skills?.nice_to_have || [],
-        withSummary: true
-      };
-      
-      // TODO: Esta funcionalidad ahora la maneja un agente externo
-      alert('⚠️ Matching será manejado por un agente externo');
-    } catch (error) {
-      console.error('Error:', error);
-      alert('❌ Error ejecutando matching');
-    } finally {
-      setMatchingLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -153,36 +144,6 @@ export default function RequestDetailPage() {
                   <h1 className="text-3xl font-bold text-gray-900">Detalle de Solicitud</h1>
                   <p className="mt-2 text-gray-600">Información completa y acciones disponibles</p>
                 </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => navigator.clipboard.writeText(request.id)}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  Copiar ID
-                </button>
-                <button
-                  onClick={handleMatching}
-                  disabled={matchingLoading}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                >
-                  {matchingLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Ejecutando...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                      Ejecutar Matching
-                    </>
-                  )}
-                </button>
               </div>
             </div>
           </div>
@@ -344,27 +305,68 @@ export default function RequestDetailPage() {
               </div>
             </div>
 
-            {/* Matches encontrados */}
-            {matches.length > 0 && (
+            {/* Candidatos completos */}
+            {request.candidates && request.candidates.length > 0 && (
               <div className="bg-white rounded-lg shadow-sm border">
                 <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">Matches Encontrados</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Candidatos Encontrados ({request.candidates.length})
+                  </h3>
                 </div>
                 <div className="p-6">
                   <div className="space-y-4">
-                    {matches.map((match, index) => (
-                      <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="font-medium text-gray-900">{match.employee_name}</div>
-                          <div className="text-sm font-medium text-blue-600">{match.score}</div>
+                    {request.candidates.map((candidate, index) => (
+                      <div key={candidate.employee_id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="text-lg font-semibold text-gray-900">
+                                {candidate.name || `Candidato ${index + 1}`}
+                              </span>
+                              <span className={`badge text-xs ${
+                                (candidate.score || 0.5) >= 0.8 ? 'badge-success' :
+                                (candidate.score || 0.5) >= 0.6 ? 'badge-primary' :
+                                (candidate.score || 0.5) >= 0.4 ? 'badge-warning' :
+                                'badge-gray'
+                              }`}>
+                                {Math.round((candidate.score || 0.5) * 100)}%
+                              </span>
+                            </div>
+                            {candidate.email && (
+                              <div className="text-sm text-gray-600 mb-1">
+                                📧 {candidate.email}
+                              </div>
+                            )}
+                            <div className="flex gap-4 text-xs text-gray-500">
+                              {candidate.seniority && (
+                                <span>👤 {candidate.seniority}</span>
+                              )}
+                              {candidate.location && (
+                                <span>📍 {candidate.location}</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-600 mb-2">{match.position}</div>
-                        <div className="text-xs text-gray-500">
-                          {match.seniority} • {match.location || 'N/A'}
-                        </div>
-                        {match.summary && (
-                          <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded">
-                            {match.summary}
+                        
+                        {candidate.summary && (
+                          <div className="mb-3">
+                            <div className="text-xs font-medium text-gray-700 mb-1">Resumen:</div>
+                            <div className="text-sm text-gray-600 leading-relaxed">
+                              {candidate.summary}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {candidate.match_details?.matched_skills && candidate.match_details.matched_skills.length > 0 && (
+                          <div>
+                            <div className="text-xs font-medium text-gray-700 mb-2">Skills Matcheadas:</div>
+                            <div className="flex flex-wrap gap-1">
+                              {candidate.match_details.matched_skills.map(skill => (
+                                <span key={skill} className="badge badge-sm badge-primary text-xs">
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -374,45 +376,19 @@ export default function RequestDetailPage() {
               </div>
             )}
 
-            {/* Acciones rápidas */}
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Acciones Rápidas</h3>
-              </div>
-              <div className="p-6">
-                <div className="space-y-3">
-                  <button
-                    onClick={handleMatching}
-                    disabled={matchingLoading}
-                    className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                  >
-                    {matchingLoading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Ejecutando Matching...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        Ejecutar Matching
-                      </>
-                    )}
-                  </button>
-                  
-                  <button
-                    onClick={() => navigator.clipboard.writeText(request.id)}
-                    className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Copiar ID
-                  </button>
+            {/* Sin candidatos */}
+            {(!request.candidates || request.candidates.length === 0) && (
+              <div className="bg-white rounded-lg shadow-sm border">
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900">Candidatos</h3>
+                </div>
+                <div className="p-6 text-center">
+                  <div className="text-gray-500 text-sm">
+                    No hay candidatos encontrados para esta solicitud
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
