@@ -470,7 +470,7 @@ export async function POST(req: NextRequest) {
     const topCandidates = candidates.slice(0, 30);
     console.log(`✅ Final result: ${topCandidates.length} candidates (max 30)`);
 
-    // Format response with simplified cv_index for n8n compatibility
+    // Format response with cv_index for n8n compatibility
     const response = topCandidates.map(candidate => ({
       employee_id: candidate.employee_id,
       name: candidate.name,
@@ -478,7 +478,7 @@ export async function POST(req: NextRequest) {
       location: candidate.location,
       seniority: candidate.seniority,
       cv_index: candidate.cv_index, // CV data for analysis
-      match_score: candidate.matched_must_have.length / must_have.length, // Calculate score as % of matched skills
+      match_score: candidate.matched_must_have.length / must_have.length,
       matched_skills: candidate.matched_must_have,
       match_quality: candidate.match_quality
     }));

@@ -117,6 +117,45 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/**
+ * Enriches candidate data with employee information from database
+ */
+async function enrichCandidates(candidates: any[], supabase: any) {
+  if (!candidates || candidates.length === 0) return [];
+  
+  const employeeIds = candidates.map(c => c.employee_id).filter(Boolean);
+  if (employeeIds.length === 0) return candidates;
+
+  // Fetch employee data
+  const { data: employees, error } = await supabase
+    .from('employees')
+    .select('id, first_name, last_name, email, seniority, location')
+    .in('id', employeeIds);
+
+  if (error) {
+    console.error('Error fetching employee data:', error);
+    return candidates;
+  }
+
+  // Create a map for quick lookup
+  const employeeMap = new Map(employees?.map(emp => [emp.id, emp]) || []);
+
+  // Enrich candidates with employee data
+  return candidates.map(candidate => {
+    const employee = employeeMap.get(candidate.employee_id);
+    if (employee) {
+      return {
+        ...candidate,
+        name: `${employee.first_name} ${employee.last_name}`,
+        email: employee.email,
+        seniority: employee.seniority,
+        location: employee.location
+      };
+    }
+    return candidate;
+  });
+}
+
 export async function GET(req: NextRequest) {
   try {
     // Validate configuration
@@ -212,8 +251,16 @@ export async function GET(req: NextRequest) {
 
     console.log(`📋 Retrieved ${totalRequests} requests (offset: ${offset}, limit: ${limit}, hasMore: ${hasMore})`);
 
+    // Enrich candidates with employee data for each request
+    const enrichedRequests = await Promise.all(
+      (requests || []).map(async (request) => ({
+        ...request,
+        candidates: await enrichCandidates(request.candidates || [], supabase)
+      }))
+    );
+
     return Response.json({
-      items: requests || [],
+      items: enrichedRequests,
       total: count || 0,
       limit,
       offset,

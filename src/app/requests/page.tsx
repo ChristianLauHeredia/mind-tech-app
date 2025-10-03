@@ -3,6 +3,9 @@ import { useState, useEffect } from 'react';
 
 interface Candidate {
   employee_id: string;
+  name?: string;           // Nombre completo del empleado
+  email?: string;          // Email del empleado
+  seniority?: string;      // Seniority del empleado
   summary: string;
   score?: number;
   match_details?: {
@@ -227,9 +230,17 @@ export default function RequestsPage() {
                                 {request.candidates.slice(0, 3).map((candidate, index) => (
                                   <div key={candidate.employee_id} className="bg-gray-50 p-3 rounded">
                                     <div className="flex items-center justify-between mb-2">
-                                      <span className="text-sm font-medium text-gray-900">
-                                        Candidato {index + 1}
-                                      </span>
+                                      <div className="flex flex-col">
+                                        <span className="text-sm font-medium text-gray-900">
+                                          {candidate.name || `Empleado #${candidate.employee_id.slice(-4)}`}
+                                        </span>
+                                        {candidate.email && (
+                                          <span className="text-xs text-gray-500">{candidate.email}</span>
+                                        )}
+                                        {candidate.seniority && (
+                                          <span className="text-xs text-primary-600 font-medium">Seniority: {candidate.seniority}</span>
+                                        )}
+                                      </div>
                                       <span className={`badge ${
                                         (candidate.score || 0.5) >= 0.8 ? 'badge-success' :
                                         (candidate.score || 0.5) >= 0.6 ? 'badge-primary' :
@@ -408,6 +419,73 @@ export default function RequestsPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Candidatos completos */}
+                  {selectedRequest.candidates && selectedRequest.candidates.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900 mb-3">
+                        Candidatos Encontrados ({selectedRequest.candidates.length})
+                      </h3>
+                      <div className="space-y-3">
+                        {selectedRequest.candidates.map((candidate, index) => (
+                          <div key={candidate.employee_id} className="bg-gray-50 rounded-lg p-4 border">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <span className="text-lg font-semibold text-gray-900">
+                                    {candidate.name || `Candidato ${index + 1}`}
+                                  </span>
+                                  <span className={`badge text-xs ${
+                                    (candidate.score || 0.5) >= 0.8 ? 'badge-success' :
+                                    (candidate.score || 0.5) >= 0.6 ? 'badge-primary' :
+                                    (candidate.score || 0.5) >= 0.4 ? 'badge-warning' :
+                                    'badge-gray'
+                                  }`}>
+                                    {Math.round((candidate.score || 0.5) * 100)}%
+                                  </span>
+                                </div>
+                                {candidate.email && (
+                                  <div className="text-sm text-gray-600 mb-1">
+                                    📧 {candidate.email}
+                                  </div>
+                                )}
+                                <div className="flex gap-4 text-xs text-gray-500">
+                                  {candidate.seniority && (
+                                    <span>👤 {candidate.seniority}</span>
+                                  )}
+                                  {candidate.location && (
+                                    <span>📍 {candidate.location}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {candidate.summary && (
+                              <div className="mb-3">
+                                <div className="text-xs font-medium text-gray-700 mb-1">Resumen:</div>
+                                <div className="text-sm text-gray-600 leading-relaxed">
+                                  {candidate.summary}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {candidate.match_details?.matched_skills && candidate.match_details.matched_skills.length > 0 && (
+                              <div>
+                                <div className="text-xs font-medium text-gray-700 mb-2">Skills Matcheadas:</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {candidate.match_details.matched_skills.map(skill => (
+                                    <span key={skill} className="badge badge-sm badge-primary text-xs">
+                                      {skill}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-8">
