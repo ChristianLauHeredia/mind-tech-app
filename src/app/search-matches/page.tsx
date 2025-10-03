@@ -193,7 +193,7 @@ export default function SearchMatchesPage() {
       
       // Check if n8n returned "no items found" response
       if (result.code === 0 && result.message === "No item to return was found") {
-        console.log('ℹ️ n8n: No items found - this is expected when no candidates match');
+        console.log('✅ FIXED: n8n no items found - this is expected when no candidates match');
         showToast('ℹ️ No se encontraron candidatos que coincidan con los criterios de búsqueda', 'info');
         setMatches([]);
         setProcessedData({
