@@ -84,7 +84,7 @@ graph LR
 
 ### 2. Webhook de Búsqueda/Matching
 
-**Endpoint:** `https://laucho.app.n8n.cloud/webhook-test/mind-intake`
+**Endpoint:** `https://laucho.app.n8n.cloud/webhook/mind-intake`
 
 **Propósito:** Interpretar requerimientos de trabajo y estructura datos para el motor de matching
 
@@ -290,7 +290,7 @@ Return combined results
 ```bash
 # n8n Integration URLs
 N8N_WEBHOOK_URL=https://laucho.app.n8n.cloud/webhook/mind-intake
-N8N_TEST_WEBHOOK_URL=https://laucho.app.n8n.cloud/webhook-test/mind-intake
+N8N_WEBHOOK_URL=https://laucho.app.n8n.cloud/webhook/mind-intake
 
 # External API Keys (also needed by n8n)
 OPENAI_API_KEY=sk-your-openai-key
@@ -409,7 +409,7 @@ curl -X POST https://laucho.app.n8n.cloud/webhook/mind-intake \
   }'
 
 # Test search processing  
-curl -X POST https://laucho.app.n8n.cloud/webhook-test/mind-intake \
+curl -X POST https://laucho.app.n8n.cloud/webhook/mind-intake \
   -H "Content-Type: application/json" \
   -d '{
     "text": "need senior react developer",

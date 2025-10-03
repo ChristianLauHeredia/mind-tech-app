@@ -138,7 +138,7 @@ POST https://laucho.app.n8n.cloud/webhook/mind-intake
 
 #### Webhook de Busqueda/Matching
 ```http
-POST https://laucho.app.n8n.cloud/webhook-test/mind-intake
+POST https://laucho.app.n8n.cloud/webhook/mind-intake
 ```
 
 **Input Body:**
@@ -360,7 +360,7 @@ GOOGLE_DRIVE_SERVICE_ACCOUNT=path/to/service-account.json
 
 # n8n Integration
 N8N_WEBHOOK_URL=https://laucho.app.n8n.cloud/webhook/mind-intake
-N8N_TEST_WEBHOOK_URL=https://laucho.app.n8n.cloud/webhook-test/mind-intake
+N8N_WEBHOOK_URL=https://laucho.app.n8n.cloud/webhook/mind-intake
 ```
 
 ### Instalación Local

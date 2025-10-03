@@ -257,7 +257,7 @@ interface TextSearch {
 }
 
 // Envio a n8n
-POST https://laucho.app.n8n.cloud/webhook-test/mind-intake
+POST https://laucho.app.n8n.cloud/webhook/mind-intake
 Content-Type: application/json
 {
   "text": "need senior react developer for fintech",
@@ -279,7 +279,7 @@ formData.append('file', selectedFile);
 formData.append('text', 'Additional context');
 formData.append('channel_id', 'web app');
 
-POST https://laucho.app.n8n.cloud/webhook-test/mind-intake
+POST https://laucho.app.n8n.cloud/webhook/mind-intake
 Content-Type: multipart/form-data
 ```
 
