@@ -248,34 +248,6 @@ export default async function Home() {
                     <div className="text-sm opacity-90">Revisar solicitudes de talento</div>
                   </div>
                 </a>
-                <a href="/parse-test" className="btn btn-secondary btn-lg flex-col gap-3 p-6 hover:shadow-lg transition-all">
-                  <span className="text-3xl">🧠</span>
-                  <div className="text-center">
-                    <div className="font-semibold">Test Parse IA</div>
-                    <div className="text-sm opacity-90">Probar el parser de IA</div>
-                  </div>
-                </a>
-                <a href="/api/debug-db" className="btn btn-warning btn-lg flex-col gap-3 p-6 hover:shadow-lg transition-all" target="_blank">
-                  <span className="text-3xl">🔧</span>
-                  <div className="text-center">
-                    <div className="font-semibold">Debug DB</div>
-                    <div className="text-sm opacity-90">Verificar conexión DB</div>
-                  </div>
-                </a>
-                <a href="/api/test-db" className="btn btn-info btn-lg flex-col gap-3 p-6 hover:shadow-lg transition-all" target="_blank">
-                  <span className="text-3xl">⚡</span>
-                  <div className="text-center">
-                    <div className="font-semibold">Test Env</div>
-                    <div className="text-sm opacity-90">Verificar variables entorno</div>
-                  </div>
-                </a>
-                <a href="/api/debug-requests" className="btn btn-warning btn-lg flex-col gap-3 p-6 hover:shadow-lg transition-all" target="_blank">
-                  <span className="text-3xl">🔍</span>
-                  <div className="text-center">
-                    <div className="font-semibold">Debug Requests</div>
-                    <div className="text-sm opacity-90">Ver estructura de requests</div>
-                  </div>
-                </a>
               </div>
             </div>
           </div>
