@@ -7,6 +7,7 @@ interface LayoutProps {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: '🏠' },
   { name: 'Empleados', href: '/employees', icon: '👥' },
+  { name: 'Buscar', href: '/search-matches', icon: '🔍' },
   { name: 'Solicitudes', href: '/requests', icon: '📋' },
   { name: 'Configuración', href: '/settings', icon: '⚙️' },
 ];
