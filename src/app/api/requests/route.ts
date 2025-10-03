@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 async function enrichCandidates(candidates: any[], supabase: any) {
   if (!candidates || candidates.length === 0) return [];
   
-  const employeeIds = candidates.map(c => c.employee_id).filter(Boolean);
+  const employeeIds = candidates.map((c: any) => c.employee_id).filter(Boolean);
   if (employeeIds.length === 0) return candidates;
 
   // Fetch employee data
@@ -27,8 +27,8 @@ async function enrichCandidates(candidates: any[], supabase: any) {
   const employeeMap = new Map(employees?.map((emp: any) => [emp.id, emp]) || []);
 
   // Enrich candidates with employee data
-  return candidates.map(candidate => {
-    const employee = employeeMap.get(candidate.employee_id);
+  return candidates.map((candidate: any) => {
+    const employee = employeeMap.get(candidate.employee_id) as any;
     if (employee) {
       return {
         ...candidate,
