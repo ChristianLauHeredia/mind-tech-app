@@ -433,6 +433,33 @@ export default function SearchMatchesPage() {
           const latestRequest = data.items[0]; // El más reciente
           console.log('📋 Latest request loaded:', latestRequest);
           setLastRequest(latestRequest);
+          
+          // Update matches with real candidate data
+          if (latestRequest.candidates && latestRequest.candidates.length > 0) {
+            const realMatches = latestRequest.candidates.map((candidate: any, index: number) => ({
+              id: candidate.employee_id || `candidate-${index}`,
+              name: candidate.name || 'Sin nombre',
+              email: candidate.email || 'Sin email',
+              location: candidate.location || 'Sin ubicación',
+              seniority: candidate.seniority || 'Sin seniority',
+              last_project: '', // Not available in current data
+              cv_link: '', // Not available in current data
+              parsed_skills: {
+                must_have: candidate.match_details?.matched_skills || [],
+                nice_to_have: []
+              },
+              match_score: candidate.score || 0
+            }));
+            
+            setMatches(realMatches);
+            setProcessedData({
+              matches: realMatches,
+              search_query: latestRequest.content || '',
+              total_found: realMatches.length,
+              processing_time: Date.now()
+            });
+          }
+          
           showToast(`✅ Búsqueda guardada: ${latestRequest.candidates?.length || 0} candidatos encontrados (ID: ${latestRequest.id?.substring(0, 8)}...)`, 'success');
         } else {
           showToast('ℹ️ No hay búsquedas guardadas aún', 'info');
