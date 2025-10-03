@@ -2,6 +2,36 @@
 
 import { useState } from 'react';
 
+interface Candidate {
+  employee_id: string;
+  summary: string;
+  summary?: string; // Individual summary from n8n
+  score?: number;
+  match_details?: {
+    matched_skills?: string[];
+    seniority_match?: boolean;
+    role_match?: boolean;
+  };
+}
+
+interface RequestData {
+  id: string;
+  requester?: string;
+  channel_id?: string;
+  content: string;
+  parsed_skills?: {
+    role?: string;
+    seniority?: string;
+    must_have?: string[];
+    nice_to_have?: string[];
+    extra_keywords?: string[];
+  };
+  seniority_hint?: string;
+  role_hint?: string;
+  candidates?: Candidate[];
+  created_at: string;
+}
+
 interface MatchResult {
   id: string;
   name: string;
@@ -32,6 +62,7 @@ export default function SearchMatchesPage() {
   const [lastSearchQuery, setLastSearchQuery] = useState('');
   const [processedData, setProcessedData] = useState<SearchResponse | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [lastRequest, setLastRequest] = useState<RequestData | null>(null);
 
   // Helper function for toast notifications (simplified to avoid SSR issues)
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -235,6 +266,11 @@ export default function SearchMatchesPage() {
       setMatches(searchResults.matches);
       setProcessedData(searchResults);
       setLastSearchQuery(searchResults.search_query);
+      
+      // Load the latest request from n8n pipeline (includes summaries)
+      setTimeout(() => {
+        fetchLastRequest();
+      }, 2000); // Wait 2 seconds for n8n to process and save
 
     } catch (error) {
       console.error('Error searching matches:', error);
@@ -246,6 +282,23 @@ export default function SearchMatchesPage() {
     }
   };
 
+  const fetchLastRequest = async () => {
+    try {
+      const response = await fetch('/api/requests');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.requests && data.requests.length > 0) {
+          const latestRequest = data.requests[0]; // El más reciente
+          console.log('📋 Latest request loaded:', latestRequest);
+          setLastRequest(latestRequest);
+          showToast(`✅ Cargados ${latestRequest.candidates?.length || 0} candidatos de la última búsqueda`, 'success');
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching last request:', error);
+    }
+  };
+
   const clearSearch = () => {
     setSearchText('');
     setMatches([]);
@@ -253,6 +306,7 @@ export default function SearchMatchesPage() {
     setProcessedData(null);
     setLastSearchQuery('');
     setSelectedFile(null);
+    setLastRequest(null);
   };
 
   const testConnection = async () => {
@@ -356,6 +410,14 @@ export default function SearchMatchesPage() {
                   className="btn btn-secondary"
                 >
                   🔗 Probar Conexión
+                </button>
+                
+                <button
+                  onClick={fetchLastRequest}
+                  disabled={loading}
+                  className="btn btn-secondary"
+                >
+                  📋 Cargar Última Búsqueda
                 </button>
                 
                 <button
@@ -522,6 +584,94 @@ export default function SearchMatchesPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Latest Request Results */}
+        {lastRequest && (
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">📋 Última Búsqueda Guardada</h2>
+              <div className="flex items-center gap-4 text-sm text-gray-600">
+                <span>🆔 ID: {lastRequest.id}</span>
+                <span>⏱️ {new Date(lastRequest.created_at).toLocaleString()}</span>
+                <span>📊 {lastRequest.candidates?.length || 0} candidatos</span>
+              </div>
+            </div>
+
+            {/* Request Info */}
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <div className="text-sm">
+                <div><strong>Consulta:</strong> "{lastRequest.content.substring(0, 100)}{lastRequest.content.length > 100 ? '...' : ''}"</div>
+                {lastRequest.parsed_skills?.role && <div><strong>Rol:</strong> {lastRequest.parsed_skills.role}</div>}
+                {lastRequest.parsed_skills?.seniority && <div><strong>Seniority:</strong> {lastRequest.parsed_skills.seniority}</div>}
+                {lastRequest.parsed_skills?.must_have && lastRequest.parsed_skills.must_have.length > 0 && (
+                  <div><strong>Skills requeridas:</strong> {lastRequest.parsed_skills.must_have.join(', ')}</div>
+                )}
+              </div>
+            </div>
+
+            {/* Candidates */}
+            <div className="space-y-4">
+              <h3 className="font-medium text-gray-900">Candidatos Encontrados ({lastRequest.candidates?.length || 0})</h3>
+              
+              {lastRequest.candidates && lastRequest.candidates.length > 0 ? (
+                lastRequest.candidates.map((candidate, index) => (
+                  <div key={candidate.employee_id || index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-gray-500">#{index + 1}</span>
+                        <span className="text-sm font-mono text-gray-400">{candidate.employee_id}</span>
+                        {candidate.score && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Score: {(candidate.score * 100).toFixed(0)}%
+                          </span>
+                        )}
+                      </div>
+                      {candidate.match_details?.matched_skills && candidate.match_details.matched_skills.length > 0 && (
+                        <div className="text-xs text-gray-500">
+                          Skills: {candidate.match_details.matched_skills.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="mb-3">
+                      <h4 className="font-medium text-gray-900 mb-2">📝 Summary</h4>
+                      <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
+                        {candidate.summary}
+                      </p>
+                    </div>
+                    
+                    {candidate.match_details && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                        {candidate.match_details.seniority_match !== undefined && (
+                          <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                            candidate.match_details.seniority_match 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            Seniority: {candidate.match_details.seniority_match ? '✅ Match' : '❌ No match'}
+                          </span>
+                        )}
+                        {candidate.match_details.role_match !== undefined && (
+                          <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                            candidate.match_details.role_match 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            Role: {candidate.match_details.role_match ? '✅ Match' : '❌ No match'}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No hay candidatos disponibles en el último request
+                </div>
+              )}
+            </div>
           </div>
         )}
 
