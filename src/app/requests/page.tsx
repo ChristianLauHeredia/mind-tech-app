@@ -227,7 +227,7 @@ export default function RequestsPage() {
                             </div>
                             {request.candidates && request.candidates.length > 0 && (
                               <div className="space-y-2">
-                                {request.candidates.slice(0, 3).map((candidate, index) => (
+                                {request.candidates.map((candidate, index) => (
                                   <div key={candidate.employee_id} className="bg-gray-50 p-3 rounded">
                                     <div className="flex items-center justify-between mb-2">
                                       <div className="flex flex-col">
@@ -267,11 +267,6 @@ export default function RequestsPage() {
                                     )}
                                   </div>
                                 ))}
-                                {request.candidates.length > 3 && (
-                                  <div className="text-xs text-gray-500 text-center">
-                                    +{request.candidates.length - 3} candidatos más...
-                                  </div>
-                                )}
                               </div>
                             )}
                           </div>
@@ -293,13 +288,6 @@ export default function RequestsPage() {
                                 </span>
                               )}
                             </div>
-                            <a
-                              href={`/requests/${request.id}`}
-                              className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              Ver detalles
-                            </a>
                           </div>
                         </div>
                       </div>
