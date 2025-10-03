@@ -62,6 +62,11 @@ export default function RequestsPage() {
 
       console.log('🔄 Fetching all requests...');
       const response = await fetch(`/api/requests?${params}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data: RequestsResponse = await response.json();
       console.log('📊 Received data:', data);
       setRequests(data.items);
@@ -103,6 +108,55 @@ export default function RequestsPage() {
     if (role.toLowerCase().includes('devops')) return '🐳';
     if (role.toLowerCase().includes('mobile')) return '📱';
     return '💼';
+  };
+
+  const getRoleDisplay = (request: any) => {
+    // Primero intentar con datos estructurados
+    if (request.parsed_skills?.role) {
+      return request.parsed_skills.role;
+    }
+    if (request.role_hint) {
+      return request.role_hint;
+    }
+
+    // Extraer rol del contenido usando keywords
+    const content = (request.content || '').toLowerCase();
+    
+    // Patrones comunes de roles en español e inglés
+    const rolePatterns = {
+      'Frontend Developer': ['frontend', 'react', 'vue', 'angular', 'javascript', 'typescript', 'css', 'html', 'ui/ux', 'ui developer', 'front end'],
+      'Backend Developer': ['backend', 'java', 'python', 'node', 'php', 'ruby', 'go', 'c#', 'spring', 'django', 'laravel', 'api developer'],
+      'Full Stack Developer': ['fullstack', 'full stack', 'full-stack', 'mern', 'mean', 'jstack', 'desarrollador completo'],
+      'Mobile Developer': ['mobile', 'android', 'ios', 'flutter', 'react native', 'swift', 'kotlin'],
+      'DevOps Engineer': ['devops', 'docker', 'kubernetes', 'aws', 'azure', 'ci/cd', 'terraform', 'ansible'],
+      'Data Scientist': ['data science', 'machine learning', 'datascience', 'ml', 'ai', 'pandas', 'tensorflow'],
+      'QA Engineer': ['qa', 'testing', 'test engineer', 'quality assurance', 'automation testing'],
+      'Product Manager': ['product manager', 'product owner', 'pm', 'gestión de producto', 'product lead']
+    };
+
+    // Buscar patrones en el contenido
+    for (const [role, keywords] of Object.entries(rolePatterns)) {
+      if (keywords.some(keyword => content.includes(keyword))) {
+        return role;
+      }
+    }
+
+    // Si tiene candidatos pero no rol específico, mostrar contexto
+    if (request.candidates && request.candidates.length > 0) {
+      const topCandidate = request.candidates[0];
+      if (topCandidate.name) {
+        return `Búsqueda para ${topCandidate.name}`;
+      }
+    }
+
+    // Si tiene skills parseadas pero sin rol específico
+    if (request.parsed_skills?.must_have?.length > 0) {
+      const skills = request.parsed_skills.must_have.slice(0, 2).join(', ');
+      return `Desarrollador (${skills})`;
+    }
+
+    // Último recurso - información útil
+    return `Solicitud de ${request.created_at ? new Date(request.created_at).toLocaleDateString('es-ES') : 'temmplate'}`;
   };
 
   const loadMore = () => {
@@ -197,13 +251,13 @@ export default function RequestsPage() {
                       <div className="flex items-start gap-4">
                         <div className="w-6 h-6 bg-gray-100 rounded-md flex items-center justify-center">
                           <span className="text-xs">
-                            {getRoleIcon(request.parsed_skills?.role || request.role_hint || '')}
+                            {getRoleIcon(getRoleDisplay(request))}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
                             <h3 className="text-base font-medium text-gray-900 truncate">
-                              {request.parsed_skills?.role || request.role_hint || 'Sin rol definido'}
+                              {getRoleDisplay(request)}
                             </h3>
                             <span className={`badge ${
                               request.parsed_skills?.seniority === 'JR' ? 'badge-success' :

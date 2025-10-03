@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 export function middleware(req: NextRequest) {
+  // Skip auth in development if this is a local host request
+  if (req.nextUrl.hostname === 'localhost' || req.nextUrl.hostname === '127.0.0.1') {
+    return NextResponse.next();
+  }
+
   const basic = req.headers.get('authorization');
   if (!basic) return new NextResponse('Auth required', { status: 401, headers: { 'WWW-Authenticate': 'Basic realm="Admin"' } });
   const [u, p] = Buffer.from(basic.split(' ')[1] || '', 'base64').toString().split(':');
