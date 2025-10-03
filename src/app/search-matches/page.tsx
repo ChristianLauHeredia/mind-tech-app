@@ -258,10 +258,25 @@ export default function SearchMatchesPage() {
         console.log('✅ n8n processed successfully:', result);
         showToast(`✅ n8n procesó la búsqueda exitosamente. ${result.candidates_count} candidatos encontrados.`, 'success');
         
-        // Clear any previous matches since n8n handled the search
-        setMatches([]);
+        // Set placeholder matches to indicate candidates are being loaded
+        const placeholderMatches = Array.from({ length: result.candidates_count }, (_, i) => ({
+          id: `loading-${i}`,
+          name: 'Cargando...',
+          email: '',
+          location: '',
+          seniority: '',
+          last_project: '',
+          cv_link: '',
+          parsed_skills: {
+            must_have: [],
+            nice_to_have: []
+          },
+          match_score: 0
+        }));
+        
+        setMatches(placeholderMatches);
         setProcessedData({
-          matches: [],
+          matches: placeholderMatches,
           search_query: searchText,
           total_found: result.candidates_count,
           processing_time: Date.now()
