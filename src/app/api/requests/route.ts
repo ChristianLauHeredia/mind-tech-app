@@ -4,8 +4,8 @@ import { z } from 'zod';
 
 // Input validation schema for saving requests
 const RequestSchema = z.object({
-  requester: z.string().min(1),
-  channel_id: z.string().optional(),
+  requester: z.string().optional().default('n8n@system'),
+  channel_id: z.string().optional().default('n8n-webhook'),
   content: z.string().min(1),
   attachment_file_id: z.string().optional(),
   parsed_skills: z.object({
@@ -26,8 +26,7 @@ const RequestSchema = z.object({
       seniority_match: z.boolean().optional(),
       role_match: z.boolean().optional()
     }).optional()
-  })).min(1), // Array of candidate objects with their summary
-  overall_summary: z.string().optional() // Optional overall summary
+  })).min(1) // Array of candidate objects with their summary
 });
 
 type RequestData = z.infer<typeof RequestSchema>;
@@ -128,14 +127,7 @@ export async function POST(req: NextRequest) {
     return Response.json({
       success: true,
       request_id: requestId,
-      candidates_count: candidates.length,
-      candidates: candidates.map(c => ({
-        employee_id: c.employee_id,
-        summary: c.summary,
-        score: c.score
-      })),
-      overall_summary: overall_summary,
-      message: 'Request and candidates saved successfully with individual summaries'
+      candidates_count: candidates.length
     });
 
   } catch (error) {
