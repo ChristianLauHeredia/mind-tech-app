@@ -104,7 +104,7 @@ export default function SearchMatchesPage() {
           formData.append('text', searchText.trim());
         }
         
-        response = await sendToN8N('https://laucho.app.n8n.cloud/webhook/mind-intake', {
+        response = await sendToN8N('https://laucho.app.n8n.cloud/webhook-test/mind-intake', {
           method: 'POST', // MUST BE POST - NO GET ALLOWED
           headers: {
             'Accept': 'application/json',
@@ -114,7 +114,7 @@ export default function SearchMatchesPage() {
       } else {
         // Send text only
         console.log('📝 Debug - Sending text only:', searchText.trim().substring(0, 50) + '...', 'with channel_id: web app');
-        response = await sendToN8N('https://laucho.app.n8n.cloud/webhook/mind-intake', {
+        response = await sendToN8N('https://laucho.app.n8n.cloud/webhook-test/mind-intake', {
           method: 'POST', // MUST BE POST - NO GET ALLOWED  
           headers: {
             'Content-Type': 'application/json',
