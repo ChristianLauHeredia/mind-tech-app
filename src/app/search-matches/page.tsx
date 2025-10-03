@@ -359,12 +359,34 @@ export default function SearchMatchesPage() {
                 </button>
                 
                 <button
-                  onClick={handleSearch}
+                  onClick={(e) => {
+                    console.log('🖱️ Button click:', { 
+                      loading, 
+                      searchText: searchText.trim(), 
+                      hasSearchText: !!searchText.trim(), 
+                      selectedFile: !!selectedFile,
+                      fileName: selectedFile?.name,
+                      shouldBeDisabled: loading || (!searchText.trim() && !selectedFile)
+                    });
+                    handleSearch();
+                  }}
                   disabled={loading || (!searchText.trim() && !selectedFile)}
                   className="btn btn-primary"
                   style={{ 
                     opacity: (loading || (!searchText.trim() && !selectedFile)) ? 0.5 : 1,
-                    backgroundColor: selectedFile ? '#10b981' : '#3b82f6' // Verde si hay archivo
+                    backgroundColor: selectedFile ? '#10b981' : '#3b82f6',
+                    borderColor: selectedFile ? '#059669' : '#2563eb'
+                  }}
+                  onMouseEnter={() => {
+                    console.log('🖱️ Button hover state:', { 
+                      loading, 
+                      searchText: `"${searchText}"`, 
+                      searchTextTrimmed: `"${searchText.trim()}"`,
+                      hasSearchText: !!searchText.trim(),
+                      selectedFile: !!selectedFile,
+                      fileName: selectedFile?.name,
+                      isDisabled: loading || (!searchText.trim() && !selectedFile)
+                    });
                   }}
                 >
                   {loading ? (
