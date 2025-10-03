@@ -191,6 +191,22 @@ export default function SearchMatchesPage() {
         return;
       }
       
+      // Check if n8n returned "no items found" response
+      if (result.code === 0 && result.message === "No item to return was found") {
+        console.log('ℹ️ n8n: No items found');
+        showToast('❌ No se encontraron candidatos que coincidan con los criterios', 'error');
+        setMatches([]);
+        setProcessedData({
+          matches: [],
+          search_query: searchText,
+          total_found: 0,
+          processing_time: Date.now()
+        });
+        setLastSearchQuery(searchText);
+        setLoading(false);
+        return;
+      }
+      
       if (Array.isArray(result)) {
         // n8n returns array of {output: {...}}
         structuredOutputs = result.map((item: any) => item.output || item);
