@@ -6,6 +6,7 @@ interface Candidate {
   name?: string;           // Nombre completo del empleado
   email?: string;          // Email del empleado
   seniority?: string;      // Seniority del empleado
+  location?: string;       // Ubicación del empleado
   summary: string;
   score?: number;
   match_details?: {
