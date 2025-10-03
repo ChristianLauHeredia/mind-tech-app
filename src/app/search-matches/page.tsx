@@ -173,6 +173,35 @@ export default function SearchMatchesPage() {
         if (response.status === 404) {
           throw new Error('El webhook de n8n no está registrado. Ejecuta primero el workflow en n8n.');
         }
+        
+        // Handle n8n 500 error with "No items found" message
+        if (response.status === 500) {
+          try {
+            const errorResult = await response.json();
+            if (errorResult.message && (
+              errorResult.message.includes("No item") ||
+              errorResult.message.includes("no items") ||
+              errorResult.message.includes("No candidates") ||
+              errorResult.message.includes("no candidates")
+            )) {
+              console.log('✅ n8n 500: No items found -', errorResult.message);
+              showToast('ℹ️ No se encontraron candidatos que coincidan con los criterios de búsqueda', 'info');
+              setMatches([]);
+              setProcessedData({
+                matches: [],
+                search_query: searchText,
+                total_found: 0,
+                processing_time: Date.now()
+              });
+              setLastSearchQuery(searchText);
+              setLoading(false);
+              return;
+            }
+          } catch (parseError) {
+            console.warn('Could not parse 500 error response:', parseError);
+          }
+        }
+        
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
