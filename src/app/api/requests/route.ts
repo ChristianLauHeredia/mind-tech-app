@@ -4,8 +4,8 @@ import { z } from 'zod';
 
 // Input validation schema for saving requests
 const RequestSchema = z.object({
-  requester: z.string().optional().default('n8n@system'),
-  channel_id: z.string().optional().default('n8n-webhook'),
+  requester: z.string().optional(),
+  channel_id: z.string().optional(),
   content: z.string().min(1),
   attachment_file_id: z.string().optional(),
   parsed_skills: z.object({
@@ -42,7 +42,14 @@ export async function POST(req: NextRequest) {
 
     // Parse and validate input
     const body = await req.json();
-    const validatedData: RequestData = RequestSchema.parse(body);
+    const parsedData = RequestSchema.parse(body);
+    
+    // Apply defaults manually
+    const validatedData = {
+      ...parsedData,
+      requester: parsedData.requester || 'n8n@system',
+      channel_id: parsedData.channel_id || 'n8n-webhook'
+    };
     
     const { 
       requester, 
@@ -52,8 +59,7 @@ export async function POST(req: NextRequest) {
       parsed_skills,
       seniority_hint,
       role_hint,
-      candidates,
-      overall_summary
+      candidates
     } = validatedData;
 
     // Create Supabase client
