@@ -24,7 +24,7 @@ interface AdvancedCandidate {
   location: string | null;
   seniority: string;
   last_project: string | null;
-  cv_link: string;
+  cv_index: any; // Changed from cv_link to cv_index - full CV data
   parsed_skills: any;
   matched_must_have: string[];
   match_quality: 'exact' | 'relaxed' | 'minimal';
@@ -37,7 +37,7 @@ type CandidateResponse = Array<{
   email: string;
   location: string | null;
   seniority: string;
-  cv_link: string;
+  cv_index: any; // Changed from cv_link to cv_index - full CV data
   match_score: number;
   matched_skills: string[];
   match_quality: 'exact' | 'relaxed' | 'minimal' | 'simple';
@@ -149,26 +149,31 @@ async function findCandidates(
 
       // For testing, be more lenient - accept any partial match
       // Later we can make it strict for exact mode
-      if (matchedSkills.length > 0) {
-        // Get CV link
-        const { data: cvLinkData } = await supabase
-          .from('cvs')
-          .select('url')
-          .eq('employee_id', emp.id)
-          .single();
+        if (matchedSkills.length > 0) {
+          // Get CV index data (more useful than just the link)
+          let cvIndexData = null;
+          if (cvData.plain_text) {
+            try {
+              cvIndexData = JSON.parse(cvData.plain_text);
+              console.log(`📄 CV index data for ${emp.first_name}:`, Object.keys(cvIndexData));
+            } catch (error) {
+              console.warn(`Could not parse CV index for ${emp.first_name}:`, error);
+              cvIndexData = { raw_text: cvData.plain_text }; // Fallback to raw text
+            }
+          }
 
-        candidates.push({
-          employee_id: emp.id,
-          name: `${emp.first_name} ${emp.last_name}`,
-          email: emp.email,
-          location: emp.location,
-          seniority: emp.seniority,
-          last_project: null, // Would need to add this field later
-          cv_link: cvLinkData?.url || '',
-          parsed_skills: cvData.parsed_skills,
-          matched_must_have: matchedSkills,
-          match_quality: matchQuality
-        });
+          candidates.push({
+            employee_id: emp.id,
+            name: `${emp.first_name} ${emp.last_name}`,
+            email: emp.email,
+            location: emp.location,
+            seniority: emp.seniority,
+            last_project: null, // Would need to add this field later
+            cv_index: cvIndexData, // Full CV index data instead of just link
+            parsed_skills: cvData.parsed_skills,
+            matched_must_have: matchedSkills,
+            match_quality: matchQuality
+          });
 
         console.log(`✅ ${matchQuality} match: ${emp.first_name} (${matchedSkills.length}/${normalizedRequired.length} skills)`);
       }
@@ -229,25 +234,35 @@ async function findCandidatesFallback(
     );
 
     if (matchedSkills.length > 0) {
-      // Get CV link
-      const { data: cvLinkData } = await supabase
-        .from('cvs')
-        .select('url')
-        .eq('employee_id', emp.id)
-        .single();
+        // Get CV index data
+        const { data: cvIndexDbData } = await supabase
+          .from('cv_index')
+          .select('plain_text')
+          .eq('employee_id', emp.id)
+          .single();
 
-      candidates.push({
-        employee_id: emp.id,
-        name: `${emp.first_name} ${emp.last_name}`,
-        email: emp.email,
-        location: emp.location,
-        seniority: emp.seniority,
-        last_project: null,
-        cv_link: cvLinkData?.url || '',
-        parsed_skills: null,
-        matched_must_have: matchedSkills,
-        match_quality: matchQuality
-      });
+        let cvIndexForResponse: any = { message: 'CV not indexed yet' };
+        if (cvIndexDbData?.plain_text) {
+          try {
+            cvIndexForResponse = JSON.parse(cvIndexDbData.plain_text);
+          } catch (error) {
+            console.warn(`Could not parse CV index for ${emp.first_name}:`, error);
+            cvIndexForResponse = { raw_text: cvIndexDbData.plain_text };
+          }
+        }
+
+        candidates.push({
+          employee_id: emp.id,
+          name: `${emp.first_name} ${emp.last_name}`,
+          email: emp.email,
+          location: emp.location,
+          seniority: emp.seniority,
+          last_project: null,
+          cv_index: cvIndexForResponse, // Use CV index data instead of cv_link
+          parsed_skills: null,
+          matched_must_have: matchedSkills,
+          match_quality: matchQuality
+        });
     }
   }
 
@@ -365,13 +380,24 @@ async function getSimpleMatches(
       console.log(`🎯 Matched: [${matchedSkills.join(', ')}] vs Required: [${normalizedRequired.join(', ')}]`);
 
       if (matchedSkills.length > 0) {
+        // Parse CV index data for display
+        let cvIndexParsed: any = { message: 'CV not indexed yet' };
+        if (cvIndexData?.plain_text) {
+          try {
+            cvIndexParsed = JSON.parse(cvIndexData.plain_text);
+          } catch (error) {
+            console.warn(`Could not parse CV index for ${emp.first_name}:`, error);
+            cvIndexParsed = { raw_text: cvIndexData.plain_text };
+          }
+        }
+
         results.push({
           employee_id: emp.id,
           name: `${emp.first_name} ${emp.last_name}`,
           email: emp.email,
           location: emp.location,
           seniority: emp.seniority,
-          cv_link: cv.url,
+          cv_index: cvIndexParsed, // CV index data instead of cv_link
           match_score: matchScore,
           matched_skills: matchedSkills,
           match_quality: 'hybrid' // NEW: Uses both DB + CV skills
@@ -445,14 +471,14 @@ export async function POST(req: NextRequest) {
     const topCandidates = candidates.slice(0, 30);
     console.log(`✅ Final result: ${topCandidates.length} candidates (max 30)`);
 
-    // Format response with actual candidate data
+    // Format response with actual candidate data including CV index
     const response = topCandidates.map(candidate => ({
       employee_id: candidate.employee_id,
       name: candidate.name,
       email: candidate.email,
       location: candidate.location,
       seniority: candidate.seniority,
-      cv_link: candidate.cv_link,
+      cv_index: candidate.cv_index, // Full CV data instead of cv_link
       match_score: candidate.matched_must_have.length / must_have.length, // Calculate score as % of matched skills
       matched_skills: candidate.matched_must_have,
       match_quality: candidate.match_quality
