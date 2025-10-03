@@ -211,6 +211,27 @@ export default function SearchMatchesPage() {
         return;
       }
       
+      // Check for other "no candidates" responses from n8n
+      if (result.code === 0 && result.message && (
+        result.message.includes("No candidates") ||
+        result.message.includes("no candidates") ||
+        result.message.includes("Candidates not matched") ||
+        result.message.includes("candidates not matched")
+      )) {
+        console.log('✅ n8n: No candidates found -', result.message);
+        showToast('ℹ️ No se encontraron candidatos que coincidan con los criterios de búsqueda', 'info');
+        setMatches([]);
+        setProcessedData({
+          matches: [],
+          search_query: searchText,
+          total_found: 0,
+          processing_time: Date.now()
+        });
+        setLastSearchQuery(searchText);
+        setLoading(false);
+        return;
+      }
+      
       // Check for other "no results" messages from n8n
       if (result.message && (
         result.message.includes("No item") || 
@@ -265,7 +286,17 @@ export default function SearchMatchesPage() {
         // Single output case
         structuredOutputs = [result.output];
       } else {
-        showToast('⚠️ Respuesta de n8n no es válida', 'error');
+        // If we get here, n8n returned an unexpected response structure
+        console.log('⚠️ n8n returned unexpected response structure:', result);
+        showToast('ℹ️ No se encontraron candidatos que coincidan con los criterios de búsqueda', 'info');
+        setMatches([]);
+        setProcessedData({
+          matches: [],
+          search_query: searchText,
+          total_found: 0,
+          processing_time: Date.now()
+        });
+        setLastSearchQuery(searchText);
         setLoading(false);
         return;
       }
