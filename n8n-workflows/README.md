@@ -4,7 +4,7 @@ Esta carpeta contiene los workflows de n8n necesarios para el funcionamiento com
 
 ## 📋 Workflows Disponibles
 
-### 1. **index-cv-workflow.json**
+### 1. **index CV.json**
 **Propósito**: Procesamiento automático de CVs
 
 **Endpoint**: `https://laucho.app.n8n.cloud/webhook/index-cv`
@@ -43,7 +43,7 @@ Esta carpeta contiene los workflows de n8n necesarios para el funcionamiento com
 }
 ```
 
-### 2. **match-candidates-workflow.json**
+### 2. **match.json**
 **Propósito**: Búsqueda y matching de candidatos
 
 **Endpoint**: `https://laucho.app.n8n.cloud/webhook/match-candidates`
@@ -62,11 +62,11 @@ Esta carpeta contiene los workflows de n8n necesarios para el funcionamiento com
 ### Método 1: Importación Directa en n8n
 1. Abre tu instancia de n8n
 2. Ve a **Workflows** → **Import from File**
-3. Selecciona el archivo JSON correspondiente
+3. Selecciona `index CV.json` o `match.json`
 4. El workflow se importará automáticamente
 
 ### Método 2: Importación Manual
-1. Copia el contenido del archivo JSON
+1. Copia el contenido de `index CV.json` o `match.json`
 2. En n8n, ve a **Workflows** → **Import from Clipboard**
 3. Pega el contenido JSON
 4. Haz clic en **Import**

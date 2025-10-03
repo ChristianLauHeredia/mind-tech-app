@@ -10,7 +10,7 @@ Esta guía te ayudará a probar los workflows de n8n de manera sistemática.
 - [ ] Environment variables configuradas
 - [ ] Mind Tech App desplegada y accesible
 
-## 🔍 Testing del Workflow de Indexación de CVs
+## 🔍 Testing del Workflow de Indexación de CVs (`index CV.json`)
 
 ### Test 1: CV Processing Básico
 
@@ -90,7 +90,7 @@ curl -X POST https://laucho.app.n8n.cloud/webhook/index-cv \
 }
 ```
 
-## 🔍 Testing del Workflow de Matching de Candidatos
+## 🔍 Testing del Workflow de Matching de Candidatos (`match.json`)
 
 ### Test 1: Text Search Básico
 
