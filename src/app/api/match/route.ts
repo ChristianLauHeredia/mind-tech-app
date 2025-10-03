@@ -68,12 +68,13 @@ async function findCandidates(
 ): Promise<AdvancedCandidate[]> {
   
   try {
-    // Get employees with CV data using JOIN (without parsed_skills)
+    // Get employees with CV data + DB skills using JOIN
     const { data: employees, error } = await supabase
       .from('employees')
       .select(`
         id, first_name, last_name, email, location, seniority,
-        cv_index!inner(employee_id, plain_text)
+        cv_index!inner(employee_id, plain_text),
+        employee_skills(level, years, skills(name, category))
       `)
       .eq('seniority', seniority);
 
@@ -97,33 +98,51 @@ async function findCandidates(
       
       if (!cvData?.plain_text) continue;
 
-      // Extract skills from plain_text (JSON string)
-      let candidateSkills: string[] = [];
+      // 🔥 HYBRID SKILLS: Combine DB skills + CV skills from multiple sources
+      let allCandidateSkills: string[] = [];
       
+      // 1. Skills from employee_skills table (normalized DB)
+      if (emp.employee_skills && Array.isArray(emp.employee_skills)) {
+        const dbSkills = emp.employee_skills.map((es: any) => es.skills?.name).filter(Boolean);
+        allCandidateSkills.push(...dbSkills);
+        console.log(`📋 DB skills for ${emp.first_name}: ${dbSkills.join(', ')}`);
+      }
+      
+      // 2. CV skills from cv_index plain_text
       if (cvData.plain_text) {
         try {
           const parsedCvData = JSON.parse(cvData.plain_text);
           
+          // Support both formats: must_have and skills
           if (parsedCvData.must_have && Array.isArray(parsedCvData.must_have)) {
-            candidateSkills = parsedCvData.must_have.map((s: string) => s.toLowerCase().trim());
+            allCandidateSkills.push(...parsedCvData.must_have);
+            console.log(`📄 CV must_have for ${emp.first_name}: ${parsedCvData.must_have.join(', ')}`);
+          }
+          
+          if (parsedCvData.skills && Array.isArray(parsedCvData.skills)) {
+            allCandidateSkills.push(...parsedCvData.skills);
+            console.log(`📄 CV skills for ${emp.first_name}: ${parsedCvData.skills.join(', ')}`);
           }
         } catch (error) {
           console.warn(`Error parsing CV data for ${emp.first_name}:`, error);
         }
       }
 
-      // If no skills found, use mock data for demo
-      if (!candidateSkills.length) {
-        candidateSkills = ['react', 'javascript', 'typescript', 'nodejs', 'express', 'mongodb'];
-        console.log(`📝 Using mock skills for ${emp.first_name}: ${candidateSkills.join(', ')}`);
-      } else {
-        console.log(`📝 Real skills for ${emp.first_name}: ${candidateSkills.join(', ')}`);
+      // 3. Remove duplicates and normalize
+      const uniqueSkills = Array.from(new Set(allCandidateSkills.map(s => s.toLowerCase().trim())));
+      
+      // 4. If no skills found from any source, use mock data for demo
+      if (!uniqueSkills.length) {
+        uniqueSkills.push(...['react', 'javascript', 'typescript', 'nodejs', 'express', 'mongodb']);
+        console.log(`🎭 Fallback skills for ${emp.first_name}: ${uniqueSkills.join(', ')}`);
       }
+      
+      console.log(`🔥 HYBRID TOTAL skills for ${emp.first_name}: ${uniqueSkills.join(', ')}`);
 
-      // Check intersection with required skills
+      // Check intersection with required skills using hybrid skills
       const normalizedRequired = requiredSkills.map(s => s.toLowerCase().trim());
       const matchedSkills = normalizedRequired.filter(required => 
-        candidateSkills.some(candidate => 
+        uniqueSkills.some(candidate => 
           candidate.includes(required) || required.includes(candidate)
         )
       );
@@ -263,11 +282,14 @@ async function getSimpleMatches(
 ): Promise<Response> {
   
   try {
-    // Get employees with seniority
-    const { data: employees, error: empError } = await supabase
-      .from('employees')
-      .select('id, first_name, last_name, email, location, seniority')
-      .eq('seniority', seniority);
+      // Get employees with seniority + their skills from employee_skills table
+      const { data: employees, error: empError } = await supabase
+        .from('employees')
+        .select(`
+          id, first_name, last_name, email, location, seniority,
+          employee_skills!inner(level, years, skills!inner(name, category))
+        `)
+        .eq('seniority', seniority);
 
     if (empError || !employees?.length) {
       return Response.json([]);
@@ -284,11 +306,65 @@ async function getSimpleMatches(
       return Response.json([]);
     }
 
-    // Create simple response with actual candidate data
+    // Create hybrid response using BOTH DB skills + CV skills
     const results = [];
     for (const emp of employees) {
       const cv = cvLinks.find((c: any) => c.employee_id === emp.id);
-      if (cv) {
+      if (!cv) continue;
+
+      // 🔥 HYBRID SKILLS: Combine DB skills + CV skills
+      let allCandidateSkills: string[] = [];
+      
+      // 1. Skills from employee_skills table (normalized DB)
+      if (emp.employee_skills && Array.isArray(emp.employee_skills)) {
+        const dbSkills = emp.employee_skills.map((es: any) => es.skills?.name).filter(Boolean);
+        allCandidateSkills.push(...dbSkills);
+        console.log(`📋 DB skills for ${emp.first_name}: ${dbSkills.join(', ')}`);
+      }
+      
+      // 2. Get CV skills from cv_index
+      const { data: cvIndexData } = await supabase
+        .from('cv_index')
+        .select('plain_text')
+        .eq('employee_id', emp.id)
+        .single();
+        
+      if (cvIndexData?.plain_text) {
+        try {
+          const cvData = JSON.parse(cvIndexData.plain_text);
+          if (cvData.skills && Array.isArray(cvData.skills)) {
+            allCandidateSkills.push(...cvData.skills);
+            console.log(`📄 CV skills for ${emp.first_name}: ${cvData.skills.join(', ')}`);
+          }
+        } catch (error) {
+          console.warn(`Error parsing CV data for ${emp.first_name}:`, error);
+        }
+      }
+      
+      // 3. Remove duplicates and normalize
+      const uniqueSkills = Array.from(new Set(allCandidateSkills.map(s => s.toLowerCase().trim())));
+      
+      // 4. If no skills found from any source, use fallback
+      if (uniqueSkills.length === 0) {
+        uniqueSkills.push(...['react', 'javascript', 'typescript', 'nodejs']);
+        console.log(`🎭 Fallback skills for ${emp.first_name}: ${uniqueSkills.join(', ')}`);
+      }
+      
+      // 5. Calculate skill matching
+      const normalizedRequired = must_have.map(s => s.toLowerCase().trim());
+      const matchedSkills = normalizedRequired.filter(required => 
+        uniqueSkills.some(candidate => 
+          candidate.includes(required) || required.includes(candidate)
+        )
+      );
+      
+      // 6. Calculate comprehensive match score
+      const matchScore = matchedSkills.length / normalizedRequired.length;
+      
+      console.log(`✅ ${emp.first_name}: ${matchedSkills.length}/${normalizedRequired.length} = ${Math.round(matchScore * 100)}% match`);
+      console.log(`🎯 Matched: [${matchedSkills.join(', ')}] vs Required: [${normalizedRequired.join(', ')}]`);
+
+      if (matchedSkills.length > 0) {
         results.push({
           employee_id: emp.id,
           name: `${emp.first_name} ${emp.last_name}`,
@@ -296,9 +372,9 @@ async function getSimpleMatches(
           location: emp.location,
           seniority: emp.seniority,
           cv_link: cv.url,
-          match_score: 0.5, // Default score for simple matches
-          matched_skills: must_have.slice(0, Math.floor(must_have.length / 2)), // Mock some matched skills
-          match_quality: 'simple'
+          match_score: matchScore,
+          matched_skills: matchedSkills,
+          match_quality: 'hybrid' // NEW: Uses both DB + CV skills
         });
       }
     }
