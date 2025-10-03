@@ -193,8 +193,29 @@ export default function SearchMatchesPage() {
       
       // Check if n8n returned "no items found" response
       if (result.code === 0 && result.message === "No item to return was found") {
-        console.log('ℹ️ n8n: No items found');
-        showToast('❌ No se encontraron candidatos que coincidan con los criterios', 'error');
+        console.log('ℹ️ n8n: No items found - this is expected when no candidates match');
+        showToast('ℹ️ No se encontraron candidatos que coincidan con los criterios de búsqueda', 'info');
+        setMatches([]);
+        setProcessedData({
+          matches: [],
+          search_query: searchText,
+          total_found: 0,
+          processing_time: Date.now()
+        });
+        setLastSearchQuery(searchText);
+        setLoading(false);
+        return;
+      }
+      
+      // Check for other "no results" messages from n8n
+      if (result.message && (
+        result.message.includes("No item") || 
+        result.message.includes("no results") ||
+        result.message.includes("no matches") ||
+        result.message.includes("not found")
+      )) {
+        console.log('ℹ️ n8n: No results message -', result.message);
+        showToast('ℹ️ No se encontraron candidatos que coincidan con los criterios de búsqueda', 'info');
         setMatches([]);
         setProcessedData({
           matches: [],
