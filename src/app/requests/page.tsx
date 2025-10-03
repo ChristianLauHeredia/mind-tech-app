@@ -43,35 +43,24 @@ export default function RequestsPage() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterRole, setFilterRole] = useState('');
-  const [filterSeniority, setFilterSeniority] = useState('');
-  const [skillFilter, setSkillFilter] = useState('');
-  const [channelFilter, setChannelFilter] = useState('');
   const [pagination, setPagination] = useState({
     total: 0,
     limit: 50,
     offset: 0,
     hasMore: false
   });
-  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
-  const [availableSeniorities, setAvailableSeniorities] = useState<string[]>([]);
-  const [availableChannels, setAvailableChannels] = useState<string[]>([]);
 
   const fetchRequests = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (searchQuery) params.append('q', searchQuery);
-      if (filterRole) params.append('role', filterRole);
-      if (filterSeniority) params.append('seniority', filterSeniority);
-      if (skillFilter) params.append('skill', skillFilter);
-      if (channelFilter) params.append('channel', channelFilter);
       params.append('limit', pagination.limit.toString());
       params.append('offset', pagination.offset.toString());
 
+      console.log('🔄 Fetching all requests...');
       const response = await fetch(`/api/requests?${params}`);
       const data: RequestsResponse = await response.json();
+      console.log('📊 Received data:', data);
       setRequests(data.items);
       setPagination({
         total: data.total,
@@ -86,30 +75,9 @@ export default function RequestsPage() {
     }
   };
 
-  const fetchFilters = async () => {
-    try {
-      const response = await fetch('/api/requests/stats');
-      const stats = await response.json();
-      
-      setAvailableRoles(stats.requests_by_role.map((r: any) => r.role));
-      setAvailableSeniorities(stats.requests_by_seniority.map((s: any) => s.seniority));
-      setAvailableChannels(stats.requests_by_channel.map((c: any) => c.channel));
-    } catch (error) {
-      console.error('Error fetching filters:', error);
-    }
-  };
-
   useEffect(() => {
     fetchRequests();
-    fetchFilters();
   }, []);
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      fetchRequests();
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, filterRole, filterSeniority, skillFilter, channelFilter]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('es-ES', {
@@ -134,17 +102,6 @@ export default function RequestsPage() {
     return '💼';
   };
 
-  const getSeniorityColor = (seniority: string) => {
-    switch (seniority) {
-      case 'JR': return 'bg-green-100 text-green-800';
-      case 'SSR': return 'bg-blue-100 text-blue-800';
-      case 'SR': return 'bg-purple-100 text-purple-800';
-      case 'STAFF': return 'bg-orange-100 text-orange-800';
-      case 'PRINC': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   const loadMore = () => {
     if (pagination.hasMore) {
       setPagination(prev => ({
@@ -152,15 +109,6 @@ export default function RequestsPage() {
         offset: prev.offset + prev.limit
       }));
     }
-  };
-
-  const resetFilters = () => {
-    setSearchQuery('');
-    setFilterRole('');
-    setFilterSeniority('');
-    setSkillFilter('');
-    setChannelFilter('');
-    setPagination(prev => ({ ...prev, offset: 0 }));
   };
 
   if (loading) {
@@ -190,86 +138,13 @@ export default function RequestsPage() {
         </button>
       </div>
 
-      {/* Filtros */}
+      {/* Simplified header with counts */}
       <div className="card">
-        <div className="card-header">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Filtros de Búsqueda</h2>
-            <button
-              onClick={resetFilters}
-              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-            >
-              Limpiar filtros
-            </button>
-          </div>
-        </div>
         <div className="card-body">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div>
-              <label className="form-label">Buscar</label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Contenido, solicitante..."
-                className="form-input"
-              />
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-500">
+              Mostrando {requests?.length || 0} de {pagination.total} solicitudes
             </div>
-            <div>
-              <label className="form-label">Rol</label>
-              <select
-                value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value)}
-                className="form-input"
-              >
-                <option value="">Todos los roles</option>
-                {availableRoles.map(role => (
-                  <option key={role} value={role}>{role}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="form-label">Seniority</label>
-              <select
-                value={filterSeniority}
-                onChange={(e) => setFilterSeniority(e.target.value)}
-                className="form-input"
-              >
-                <option value="">Todos los niveles</option>
-                {availableSeniorities.map(seniority => (
-                  <option key={seniority} value={seniority}>{seniority}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="form-label">Skill</label>
-              <input
-                type="text"
-                value={skillFilter}
-                onChange={(e) => setSkillFilter(e.target.value)}
-                placeholder="react, node.js..."
-                className="form-input"
-              />
-            </div>
-            <div>
-              <label className="form-label">Canal</label>
-              <select
-                value={channelFilter}
-                onChange={(e) => setChannelFilter(e.target.value)}
-                className="form-input"
-              >
-                <option value="">Todos los canales</option>
-                {availableChannels.map(channel => (
-                  <option key={channel} value={channel}>{channel}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          
-          <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-            <span>
-              Mostrando {requests.length} de {pagination.total} solicitudes
-            </span>
             {pagination.hasMore && (
               <button
                 onClick={loadMore}
@@ -290,7 +165,7 @@ export default function RequestsPage() {
             <div className="card-header">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  Solicitudes ({requests.length})
+                  Solicitudes ({requests?.length || 0})
                 </h2>
                 <div className="text-sm text-gray-500">
                   {pagination.total} total
@@ -299,24 +174,16 @@ export default function RequestsPage() {
             </div>
             
             <div className="max-h-96 overflow-y-auto">
-              {requests.length === 0 ? (
+              {(requests?.length || 0) === 0 ? (
                 <div className="text-center py-12">
-                  <div className="w-6 h-6 bg-gray-100 rounded-md flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
                   <h3 className="text-sm font-medium text-gray-900">No hay solicitudes</h3>
                   <p className="text-sm text-gray-500 mt-1">
-                    {searchQuery || filterRole || filterSeniority || skillFilter || channelFilter
-                      ? 'No se encontraron solicitudes con los filtros aplicados'
-                      : 'No hay solicitudes registradas en el sistema'
-                    }
+                    No hay solicitudes registradas en el sistema
                   </p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-200">
-                  {requests.map((request) => (
+                  {(requests || []).map((request) => (
                     <div
                       key={request.id}
                       className={`p-6 cursor-pointer transition-colors hover:bg-gray-50 ${
@@ -420,7 +287,7 @@ export default function RequestsPage() {
                               className="text-primary-600 hover:text-primary-700 text-sm font-medium"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              Ver detalles →
+                              Ver detalles
                             </a>
                           </div>
                         </div>
@@ -489,8 +356,7 @@ export default function RequestsPage() {
                             <span className={`badge ${
                               selectedRequest.parsed_skills.seniority === 'JR' ? 'badge-success' :
                               selectedRequest.parsed_skills.seniority === 'SSR' ? 'badge-primary' :
-                              selectedRequest.parsed_skills.seniority === 'SR' ? 'badge-warning' :
-                              'badge-gray'
+                              'badge-warning'
                             }`}>
                               {selectedRequest.parsed_skills.seniority}
                             </span>
@@ -545,12 +411,6 @@ export default function RequestsPage() {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <div className="w-6 h-6 bg-gray-100 rounded-md flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  </div>
                   <h3 className="text-sm font-medium text-gray-900">Selecciona una solicitud</h3>
                   <p className="text-sm text-gray-500 mt-1">Haz clic en una solicitud de la lista para ver los detalles</p>
                 </div>

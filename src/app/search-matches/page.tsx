@@ -4,7 +4,6 @@ import { useState } from 'react';
 
 interface Candidate {
   employee_id: string;
-  summary: string;
   summary?: string; // Individual summary from n8n
   score?: number;
   match_details?: {

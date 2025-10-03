@@ -131,10 +131,9 @@ async function findCandidates(
       // 3. Remove duplicates and normalize
       const uniqueSkills = Array.from(new Set(allCandidateSkills.map(s => s.toLowerCase().trim())));
       
-      // 4. If no skills found from any source, use mock data for demo
+      // 4. If no skills found from any source, skip this employee
       if (!uniqueSkills.length) {
-        uniqueSkills.push(...['react', 'javascript', 'typescript', 'nodejs', 'express', 'mongodb']);
-        console.log(`🎭 Fallback skills for ${emp.first_name}: ${uniqueSkills.join(', ')}`);
+        continue;
       }
       
       console.log(`🔥 HYBRID TOTAL skills for ${emp.first_name}: ${uniqueSkills.join(', ')}`);
@@ -226,8 +225,8 @@ async function findCandidatesFallback(
     
     if (!cv?.plain_text) continue;
 
-    // Mock skills for demo since we're in fallback mode
-    const candidateSkills = ['react', 'javascript', 'typescript', 'nodejs'];
+    // Minimal skills for fallback mode
+    const candidateSkills = ['javascript']; // Basic fallback skill
     const normalizedRequired = requiredSkills.map(s => s.toLowerCase().trim());
     const matchedSkills = normalizedRequired.filter(required => 
       candidateSkills.includes(required)
@@ -510,21 +509,21 @@ export async function GET(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Create a POST request body and forward to POST handler
-    const mockBody = {
+    // Convert GET parameters to POST body format
+    const requestBody = {
       role,
       seniority: seniority as 'JR' | 'SSR' | 'SR' | 'STAFF' | 'PRINC',
       must_have: ['react', 'javascript'], // Default must-have for testing
       nice_to_have: []
     };
 
-    const mockRequest = new Request('http://localhost' + req.url, {
+    const requestWithBody = new Request('http://localhost' + req.url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(mockBody)
+      body: JSON.stringify(requestBody)
     });
 
-    return POST(mockRequest as NextRequest);
+    return POST(requestWithBody as NextRequest);
 
   } catch (error) {
     console.error('Match GET error:', error);

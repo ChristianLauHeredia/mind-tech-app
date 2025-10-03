@@ -157,21 +157,38 @@ export async function GET(req: NextRequest) {
         candidates
       `);
 
-    // Apply filters
+    // Apply filters one by one (this is safer than complex AND/OR chains)
+    console.log('🔍 Filter params:', { searchQuery, filterRole, filterSeniority, channelFilter, skillFilter });
+    
+    // Search in content and requester
     if (searchQuery) {
       query = query.or(`content.ilike.%${searchQuery}%,requester.ilike.%${searchQuery}%`);
     }
     
+    // Role filter: check both parsed_skills and role_hint  
     if (filterRole) {
-      query = query.or(`parsed_skills->role.ilike.%${filterRole}%,role_hint.ilike.%${filterRole}%`);
+      query = query.or(`parsed_skills->>role.ilike.%${filterRole}%,role_hint.ilike.%${filterRole}%`);
     }
     
+    // Seniority filter: check multiple fields where seniority might be stored
     if (filterSeniority) {
-      query = query.or(`parsed_skills->seniority.ilike.%${filterSeniority}%,seniority_hint.ilike.%${filterSeniority}%`);
+      query = query.or(`parsed_skills->>seniority.eq.${filterSeniority},seniority_hint.eq.${filterSeniority}`);
     }
     
+    // Channel filter: exact match
     if (channelFilter) {
       query = query.eq('channel_id', channelFilter);
+    }
+
+    // Skill filter: search in content
+    if (skillFilter) {
+      query = query.ilike('content', `%${skillFilter}%`);
+    }
+
+    if (searchQuery || filterRole || filterSeniority || channelFilter || skillFilter) {
+      console.log('🔍 Filters applied');
+    } else {
+      console.log('📋 No filters - returning all requests');
     }
 
     // Get total count for pagination (without offset/limit)
