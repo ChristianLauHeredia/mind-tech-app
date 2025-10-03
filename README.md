@@ -108,7 +108,7 @@ sequenceDiagram
 
 #### Webhook Principal de CV Processing
 ```http
-POST https://laucho.app.n8n.cloud/webhook/mind-intake
+POST https://laucho.app.n8n.cloud/webhook-test/mind-intake
 ```
 
 **Input Body:**
@@ -138,7 +138,7 @@ POST https://laucho.app.n8n.cloud/webhook/mind-intake
 
 #### Webhook de Busqueda/Matching
 ```http
-POST https://laucho.app.n8n.cloud/webhook/mind-intake
+POST https://laucho.app.n8n.cloud/webhook-test/mind-intake
 ```
 
 **Input Body:**
@@ -359,8 +359,8 @@ OPENAI_API_KEY=sk-your-openai-key
 GOOGLE_DRIVE_SERVICE_ACCOUNT=path/to/service-account.json
 
 # n8n Integration
-N8N_WEBHOOK_URL=https://laucho.app.n8n.cloud/webhook/mind-intake
-N8N_WEBHOOK_URL=https://laucho.app.n8n.cloud/webhook/mind-intake
+N8N_WEBHOOK_URL=https://laucho.app.n8n.cloud/webhook-test/mind-intake
+N8N_WEBHOOK_URL=https://laucho.app.n8n.cloud/webhook-test/mind-intake
 ```
 
 ### Instalación Local

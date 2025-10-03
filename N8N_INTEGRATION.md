@@ -33,7 +33,7 @@ graph LR
 
 ### 1. Webhook Principal de CV Processing
 
-**Endpoint:** `https://laucho.app.n8n.cloud/webhook/mind-intake`
+**Endpoint:** `https://laucho.app.n8n.cloud/webhook-test/mind-intake`
 
 **Propósito:** Procesamiento automático de CVs cuando se sube o actualiza un empleado
 
@@ -84,7 +84,7 @@ graph LR
 
 ### 2. Webhook de Búsqueda/Matching
 
-**Endpoint:** `https://laucho.app.n8n.cloud/webhook/mind-intake`
+**Endpoint:** `https://laucho.app.n8n.cloud/webhook-test/mind-intake`
 
 **Propósito:** Interpretar requerimientos de trabajo y estructura datos para el motor de matching
 
@@ -289,8 +289,8 @@ Return combined results
 #### Environment Variables
 ```bash
 # n8n Integration URLs
-N8N_WEBHOOK_URL=https://laucho.app.n8n.cloud/webhook/mind-intake
-N8N_WEBHOOK_URL=https://laucho.app.n8n.cloud/webhook/mind-intake
+N8N_WEBHOOK_URL=https://laucho.app.n8n.cloud/webhook-test/mind-intake
+N8N_WEBHOOK_URL=https://laucho.app.n8n.cloud/webhook-test/mind-intake
 
 # External API Keys (also needed by n8n)
 OPENAI_API_KEY=sk-your-openai-key
@@ -400,7 +400,7 @@ LIMIT 5;
 #### Test n8n Webhook Directamente
 ```bash
 # Test CV processing
-curl -X POST https://laucho.app.n8n.cloud/webhook/mind-intake \
+curl -X POST https://laucho.app.n8n.cloud/webhook-test/mind-intake \
   -H "Content-Type: application/json" \
   -d '{
     "employee_id": "test-uuid",
@@ -409,7 +409,7 @@ curl -X POST https://laucho.app.n8n.cloud/webhook/mind-intake \
   }'
 
 # Test search processing  
-curl -X POST https://laucho.app.n8n.cloud/webhook/mind-intake \
+curl -X POST https://laucho.app.n8n.cloud/webhook-test/mind-intake \
   -H "Content-Type: application/json" \
   -d '{
     "text": "need senior react developer",
