@@ -131,8 +131,18 @@ export async function GET(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Get requests with candidates stored directly
-    const { data: requests, error } = await supabase
+    // Parse query parameters
+    const { searchParams } = new URL(req.url);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100); // Max 100
+    const offset = parseInt(searchParams.get('offset') || '0');
+    const searchQuery = searchParams.get('q') || '';
+    const filterRole = searchParams.get('role') || '';
+    const filterSeniority = searchParams.get('seniority') || '';
+    const skillFilter = searchParams.get('skill') || '';
+    const channelFilter = searchParams.get('channel') || '';
+
+    // Build the base query
+    let query = supabase
       .from('requests')
       .select(`
         id,
@@ -145,8 +155,32 @@ export async function GET(req: NextRequest) {
         role_hint,
         created_at,
         candidates
-      `)
-      .order('created_at', { ascending: false });
+      `);
+
+    // Apply filters
+    if (searchQuery) {
+      query = query.or(`content.ilike.%${searchQuery}%,requester.ilike.%${searchQuery}%`);
+    }
+    
+    if (filterRole) {
+      query = query.or(`parsed_skills->role.ilike.%${filterRole}%,role_hint.ilike.%${filterRole}%`);
+    }
+    
+    if (filterSeniority) {
+      query = query.or(`parsed_skills->seniority.ilike.%${filterSeniority}%,seniority_hint.ilike.%${filterSeniority}%`);
+    }
+    
+    if (channelFilter) {
+      query = query.eq('channel_id', channelFilter);
+    }
+
+    // Get total count for pagination (without offset/limit)
+    const { count } = await query.order('created_at', { ascending: false }).limit(1000); // Get count
+    
+    // Apply pagination to actual query
+    const { data: requests, error } = await query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       console.error('Error fetching requests:', error);
@@ -156,11 +190,17 @@ export async function GET(req: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log(`📋 Retrieved ${requests?.length || 0} requests`);
+    const totalRequests = requests?.length || 0;
+    const hasMore = offset + limit < (count || 0);
+
+    console.log(`📋 Retrieved ${totalRequests} requests (offset: ${offset}, limit: ${limit}, hasMore: ${hasMore})`);
 
     return Response.json({
-      requests: requests || [],
-      total: requests?.length || 0
+      items: requests || [],
+      total: count || 0,
+      limit,
+      offset,
+      hasMore
     });
 
   } catch (error) {
