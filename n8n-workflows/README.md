@@ -9,6 +9,8 @@ Esta carpeta contiene los workflows de n8n necesarios para el funcionamiento com
 
 **Endpoint**: `https://laucho.app.n8n.cloud/webhook/index-cv`
 
+**Webhook ID**: `fe6939ab-1922-4612-bd86-38060b3e6f72`
+
 **Funcionalidad**:
 - Recibe `employee_id` y `cv_url` desde la web app
 - Descarga el CV desde Google Drive
@@ -41,10 +43,12 @@ Esta carpeta contiene los workflows de n8n necesarios para el funcionamiento com
 }
 ```
 
-### 2. **match-candidates-workflow.json** (Próximamente)
+### 2. **match-candidates-workflow.json**
 **Propósito**: Búsqueda y matching de candidatos
 
 **Endpoint**: `https://laucho.app.n8n.cloud/webhook/match-candidates`
+
+**Webhook ID**: `55551502-b48f-4d5f-9b9e-048152e1b656`
 
 **Funcionalidad**:
 - Recibe texto libre o archivos CV desde la web app
