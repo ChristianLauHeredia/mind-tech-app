@@ -228,6 +228,29 @@ export default function SearchMatchesPage() {
         return;
       }
       
+      // Handle n8n success response with request_id and candidates_count
+      if (result.success && result.request_id && result.candidates_count !== undefined) {
+        console.log('✅ n8n processed successfully:', result);
+        showToast(`✅ n8n procesó la búsqueda exitosamente. ${result.candidates_count} candidatos encontrados.`, 'success');
+        
+        // Clear any previous matches since n8n handled the search
+        setMatches([]);
+        setProcessedData({
+          matches: [],
+          search_query: searchText,
+          total_found: result.candidates_count,
+          processing_time: Date.now()
+        });
+        setLastSearchQuery(searchText);
+        setLoading(false);
+        
+        // Load the latest request to show the actual candidates
+        setTimeout(() => {
+          fetchLastRequest();
+        }, 1000);
+        return;
+      }
+      
       if (Array.isArray(result)) {
         // n8n returns array of {output: {...}}
         structuredOutputs = result.map((item: any) => item.output || item);
