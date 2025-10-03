@@ -68,12 +68,12 @@ async function findCandidates(
 ): Promise<AdvancedCandidate[]> {
   
   try {
-    // Get employees with CV data + DB skills using JOIN
+    // Get employees with CV data + DB skills using LEFT JOIN
     const { data: employees, error } = await supabase
       .from('employees')
       .select(`
         id, first_name, last_name, email, location, seniority,
-        cv_index!inner(employee_id, plain_text),
+        cv_index(employee_id, plain_text),
         employee_skills(level, years, skills(name, category))
       `)
       .eq('seniority', seniority);
@@ -301,7 +301,7 @@ async function getSimpleMatches(
         .from('employees')
         .select(`
           id, first_name, last_name, email, location, seniority,
-          employee_skills!inner(level, years, skills!inner(name, category))
+          employee_skills(level, years, skills(name, category))
         `)
         .eq('seniority', seniority);
 
@@ -549,7 +549,12 @@ export async function POST(req: NextRequest) {
     }
     
     console.error('Advanced match endpoint error:', error);
-    return Response.json({ error: 'Internal server error' }, { status: 500 });
+    return Response.json({ 
+      error: 'Internal server error',
+      message: 'An unexpected error occurred during candidate matching',
+      error_type: 'server_error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 

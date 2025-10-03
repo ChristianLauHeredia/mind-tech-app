@@ -183,12 +183,23 @@ export default function SearchMatchesPage() {
       // Parse n8n response to extract structured outputs
       let structuredOutputs: any[] = [];
       
+      // Check if n8n returned an error
+      if (result.error) {
+        console.error('❌ n8n returned error:', result.error);
+        showToast(`❌ Error de n8n: ${result.error.message || 'Error desconocido'}`, 'error');
+        setLoading(false);
+        return;
+      }
+      
       if (Array.isArray(result)) {
         // n8n returns array of {output: {...}}
         structuredOutputs = result.map((item: any) => item.output || item);
         console.log('📝 Extracted outputs:', structuredOutputs);
       } else if (result.outputs && Array.isArray(result.outputs)) {
         structuredOutputs = result.outputs;
+      } else if (result.output) {
+        // Single output case
+        structuredOutputs = [result.output];
       } else {
         showToast('⚠️ Respuesta de n8n no es válida', 'error');
         setLoading(false);
@@ -214,6 +225,19 @@ export default function SearchMatchesPage() {
           
           if (!matchResponse.ok) {
             console.warn(`⚠️ Match API failed for output:`, output);
+            const errorData = await matchResponse.json().catch(() => ({}));
+            console.warn(`❌ Error details:`, errorData);
+            
+            // Show user-friendly error message
+            if (errorData.error_type === 'no_employees') {
+              showToast(`❌ No hay empleados con seniority: ${output.seniority}`, 'error');
+            } else if (errorData.error_type === 'no_cvs') {
+              showToast(`❌ No hay CVs para empleados con seniority: ${output.seniority}`, 'error');
+            } else if (errorData.error_type === 'no_skill_matches') {
+              showToast(`❌ No se encontraron matches para skills: ${output.must_have?.join(', ')}`, 'error');
+            } else {
+              showToast(`❌ Error en búsqueda: ${errorData.message || 'Error desconocido'}`, 'error');
+            }
             continue;
           }
           
@@ -248,14 +272,19 @@ export default function SearchMatchesPage() {
         .sort((a, b) => (b.match_score || 0) - (a.match_score || 0))
         .slice(0, 5);
       
+      // Show message if no candidates found
+      if (topCandidates.length === 0) {
+        showToast('❌ No se encontraron candidatos que coincidan con los criterios', 'error');
+      } else {
+        showToast(`✅ Se encontraron ${topCandidates.length} candidatos`, 'success');
+      }
+      
       const searchResults: SearchResponse = {
         matches: topCandidates,
         search_query: searchText,
         total_found: topCandidates.length,
         processing_time: Date.now()
       };
-      
-      showToast(`✅ Encontrados ${searchResults.matches.length} candidatos`, 'success');
 
       setMatches(searchResults.matches);
       setProcessedData(searchResults);
