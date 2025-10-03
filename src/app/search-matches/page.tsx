@@ -284,18 +284,36 @@ export default function SearchMatchesPage() {
 
   const fetchLastRequest = async () => {
     try {
-      const response = await fetch('/api/requests');
+      showToast('📋 Cargando última búsqueda...', 'info');
+      
+      // Try both with and without credentials
+      const response = await fetch('/api/requests', {
+        credentials: 'include',
+        headers: {
+          'Authorization': 'Basic ' + btoa('admin:password123')
+        }
+      });
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('📋 Raw API response:', data);
+        
         if (data.requests && data.requests.length > 0) {
           const latestRequest = data.requests[0]; // El más reciente
           console.log('📋 Latest request loaded:', latestRequest);
           setLastRequest(latestRequest);
           showToast(`✅ Cargados ${latestRequest.candidates?.length || 0} candidatos de la última búsqueda`, 'success');
+        } else {
+          showToast('❌ No hay requests disponibles', 'error');
         }
+      } else {
+        const errorText = await response.text();
+        console.error('📋 API Error:', response.status, errorText);
+        showToast(`❌ Error ${response.status}: ${errorText}`, 'error');
       }
     } catch (error) {
       console.error('Error fetching last request:', error);
+      showToast(`❌ Error de conexión: ${error instanceof Error ? error.message : 'Unknown'}`, 'error');
     }
   };
 
