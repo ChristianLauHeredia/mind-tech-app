@@ -488,31 +488,46 @@ export async function POST(req: NextRequest) {
     // Phase 2: If no results, relax seniority ±1 
     if (candidates.length === 0) {
       console.log('🔄 Relaxing seniority to ±1 levels...');
-      const relaxedSeniorities = getRelaxedSeniorities(seniority);
-      candidates = await findCandidatesWithSeniorities(sb, relaxedSeniorities, must_have, role, 'relaxed');
-      console.log(`Phase 2 (relaxed seniority): ${candidates.length} candidates`);
+      try {
+        const relaxedSeniorities = getRelaxedSeniorities(seniority);
+        candidates = await findCandidatesWithSeniorities(sb, relaxedSeniorities, must_have, role, 'relaxed');
+        console.log(`Phase 2 (relaxed seniority): ${candidates.length} candidates`);
+      } catch (phase2Error) {
+        console.error('❌ Phase 2 failed:', phase2Error);
+        candidates = []; // Continue to next phase
+      }
     }
 
     // Phase 3: If still no results, remove one must_have skill
     if (candidates.length === 0 && must_have.length > 1) {
       console.log('🔄 Relaxing must_have skills (removing one)...');
-      for (let i = 0; i < must_have.length; i++) {
-        const relaxedSkills = must_have.filter((_, index) => index !== i);
-        candidates = await findCandidates(sb, seniority, relaxedSkills, role, 'minimal');
-        if (candidates.length > 0) {
-          console.log(`Phase 3 (minimal): Found ${candidates.length} candidates without skill: ${must_have[i]}`);
-          break;
+      try {
+        for (let i = 0; i < must_have.length; i++) {
+          const relaxedSkills = must_have.filter((_, index) => index !== i);
+          candidates = await findCandidates(sb, seniority, relaxedSkills, role, 'minimal');
+          if (candidates.length > 0) {
+            console.log(`Phase 3 (minimal): Found ${candidates.length} candidates without skill: ${must_have[i]}`);
+            break;
+          }
         }
+      } catch (phase3Error) {
+        console.error('❌ Phase 3 failed:', phase3Error);
+        candidates = []; // Continue to fallback
       }
     }
 
     // Fallback: Use simple approach if advanced fails
     if (candidates.length === 0) {
       console.log('🔄 Using simple fallback approach...');
-      const simpleResult = await getSimpleMatches(sb, role, seniority, must_have);
-      
-      // Return the simple result directly (it already handles empty arrays)
-      return simpleResult;
+      try {
+        const simpleResult = await getSimpleMatches(sb, role, seniority, must_have);
+        
+        // Return the simple result directly (it already handles empty arrays)
+        return simpleResult;
+      } catch (fallbackError) {
+        console.error('❌ Fallback approach failed:', fallbackError);
+        return Response.json([]); // Return empty array on fallback error
+      }
     }
 
     // Limit to 30 candidates
