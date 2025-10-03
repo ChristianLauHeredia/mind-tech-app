@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Layout from '@/app/components/Layout';
 
 interface MatchResult {
   id: string;
@@ -32,35 +31,53 @@ export default function SearchMatchesPage() {
   const [error, setError] = useState('');
   const [lastSearchQuery, setLastSearchQuery] = useState('');
   const [processedData, setProcessedData] = useState<SearchResponse | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // Helper function for toast notifications
+  // Helper function for toast notifications (simplified to avoid SSR issues)
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const toast = document.createElement('div');
-    const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-    toast.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-2 rounded shadow-lg z-50`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+    // Simple console logging for now to avoid DOM manipulation during SSR
+    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+    console.log(`${icon} ${message}`);
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === 'text/plain') {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        setSearchText(text);
-      };
-      reader.readAsText(file);
-      showToast('📄 Documento cargado exitosamente', 'success');
-    } else if (file) {
-      showToast('❌ Solo se permiten archivos de texto (.txt)', 'error');
+    const file = event.target?.files?.[0];
+    if (!file) return;
+    
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('El archivo es muy grande. Máximo 5MB', 'error');
+      return;
     }
+    
+    // Store the file for sending to n8n
+    setSelectedFile(file);
+    clearSearch(); // Clear previous search
+    
+    showToast(`Archivo "${file.name}" seleccionado. Se enviará directamente a n8n`, 'success');
+  };
+
+  const sendToN8N = async (url: string, options: RequestInit) => {
+    console.log('🚀 SENDING TO N8N:', {
+      url,
+      method: options.method,
+      headers: options.headers,
+      hasBody: !!options.body
+    });
+    
+    const response = await fetch(url, options);
+    console.log('📨 RESPONSE FROM N8N:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+    
+    return response;
   };
 
   const handleSearch = async () => {
-    if (!searchText.trim()) {
-      showToast('❌ Por favor ingresa un texto de búsqueda', 'error');
+    if (!searchText.trim() && !selectedFile) {
+      showToast('❌ Por favor ingresa texto o selecciona un archivo', 'error');
       return;
     }
 
@@ -70,14 +87,43 @@ export default function SearchMatchesPage() {
     setProcessedData(null);
 
     try {
-      showToast('🔍 Buscando matches...', 'info');
+      showToast('🔍 Procesando con n8n...', 'info');
 
-      const response = await fetch(`https://laucho.app.n8n.cloud/webhook-test/mind-intake?text=${encodeURIComponent(searchText.trim())}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      let response: Response;
+      
+      console.log('🔍 Debug - selectedFile:', !!selectedFile, 'searchText:', !!searchText.trim());
+      console.log('🔍 Debug - fetch method will be POST');
+      
+      if (selectedFile) {
+        // Send file to n8n
+        console.log('📄 Debug - Sending file:', selectedFile.name, selectedFile.type, selectedFile.size);
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        if (searchText.trim()) {
+          formData.append('text', searchText.trim());
+        }
+        
+        response = await sendToN8N('https://laucho.app.n8n.cloud/webhook-test/mind-intake', {
+          method: 'POST', // MUST BE POST - NO GET ALLOWED
+          headers: {
+            'Accept': 'application/json',
+          },
+          body: formData,
+        });
+      } else {
+        // Send text only
+        console.log('📝 Debug - Sending text only:', searchText.trim().substring(0, 50) + '...');
+        response = await sendToN8N('https://laucho.app.n8n.cloud/webhook-test/mind-intake', {
+          method: 'POST', // MUST BE POST - NO GET ALLOWED  
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            text: searchText.trim()
+          }),
+        });
+      }
 
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
@@ -140,17 +186,17 @@ export default function SearchMatchesPage() {
     setError('');
     setProcessedData(null);
     setLastSearchQuery('');
+    setSelectedFile(null);
   };
 
   return (
-    <Layout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold font-inter">🔍 Buscar Matches</h1>
-          <p className="text-gray-600 mt-2">
-            Busca candidatos escribiendo requisitos o subiendo un documento
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold font-inter">🔍 Buscar Matches</h1>
+        <p className="text-gray-600 mt-2">
+          Busca candidatos escribiendo requisitos o subiendo un documento
+        </p>
+      </div>
 
         {/* Search Input */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
@@ -169,10 +215,10 @@ export default function SearchMatchesPage() {
               <div className="flex items-center gap-4">
                 {/* File Upload */}
                 <label className="btn btn-outline btn-secondary cursor-pointer">
-                  📄 Subir Documento
+                  {selectedFile ? `📄 ${selectedFile.name}` : '📄 Subir Archivo'}
                   <input
                     type="file"
-                    accept=".txt"
+                    accept=".txt,.pdf,.doc,.docx,.rtf,.md"
                     onChange={handleFileUpload}
                     className="hidden"
                     disabled={loading}
@@ -197,7 +243,7 @@ export default function SearchMatchesPage() {
                 
                 <button
                   onClick={handleSearch}
-                  disabled={loading || !searchText.trim()}
+                  disabled={loading || (!searchText.trim() && !selectedFile)}
                   className="btn btn-primary"
                 >
                   {loading ? (
@@ -346,6 +392,5 @@ export default function SearchMatchesPage() {
           </p>
         </div>
       </div>
-    </Layout>
   );
 }
