@@ -44,6 +44,8 @@ export default function SearchMatchesPage() {
     const file = event.target?.files?.[0];
     if (!file) return;
     
+    console.log('📄 File selected:', { name: file.name, size: file.size, type: file.type });
+    
     // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       showToast('El archivo es muy grande. Máximo 5MB', 'error');
@@ -52,7 +54,12 @@ export default function SearchMatchesPage() {
     
     // Store the file for sending to n8n
     setSelectedFile(file);
-    clearSearch(); // Clear previous search
+    
+    // Don't clear search completely - just clear results
+    setMatches([]);
+    setError('');
+    setProcessedData(null);
+    setLastSearchQuery('');
     
     showToast(`Archivo "${file.name}" seleccionado. Se enviará directamente a n8n`, 'success');
   };
@@ -350,6 +357,7 @@ export default function SearchMatchesPage() {
                   onClick={handleSearch}
                   disabled={loading || (!searchText.trim() && !selectedFile)}
                   className="btn btn-primary"
+                  title={`Estado: loading=${loading}, hasText=${!!searchText.trim()}, hasFile=${!!selectedFile}`}
                 >
                   {loading ? (
                     <>
@@ -357,7 +365,7 @@ export default function SearchMatchesPage() {
                       Procesando...
                     </>
                   ) : (
-                    '🔍 Buscar Matches'
+                    `🔍 Buscar Matches ${selectedFile ? '(con archivo)' : ''}`
                   )}
                 </button>
               </div>
@@ -486,6 +494,17 @@ export default function SearchMatchesPage() {
             )}
           </div>
         )}
+
+        {/* Debug Status */}
+        <div className="bg-blue-50 rounded-lg p-4">
+          <h3 className="font-medium text-blue-900 mb-2">🔧 Estado del formulario</h3>
+          <p className="text-sm text-blue-800">
+            <strong>loading:</strong> {loading ? 'Sí' : 'No'} | 
+            <strong> searchText:</strong> "{searchText}" ({searchText.length} chars) | 
+            <strong> selectedFile:</strong> {selectedFile ? `"${selectedFile.name}"` : 'Ninguno'} |
+            <strong> botón activo:</strong> {(!searchText.trim() && !selectedFile) || loading ? 'No' : 'Sí'}
+          </p>
+        </div>
 
         {/* API Info */}
         <div className="bg-gray-50 rounded-lg p-4">
