@@ -477,13 +477,7 @@ export async function POST(req: NextRequest) {
       console.log('🔄 Using simple fallback approach...');
       const simpleResult = await getSimpleMatches(sb, role, seniority, must_have);
       
-      // Check if simple approach also returned empty results
-      const simpleData = await simpleResult.json();
-      if (!simpleData || simpleData.length === 0) {
-        console.log('❌ No candidates found in any search phase');
-        return Response.json([]); // Return empty array instead of error
-      }
-      
+      // Return the simple result directly (it already handles empty arrays)
       return simpleResult;
     }
 
