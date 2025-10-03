@@ -146,9 +146,8 @@ async function findCandidates(
         )
       );
 
-      // For testing, be more lenient - accept any partial match
-      // Later we can make it strict for exact mode
-        if (matchedSkills.length > 0) {
+      // STRICT MODE: All must_have skills must be present
+      if (matchedSkills.length === normalizedRequired.length) {
           // Get CV index data (more useful than just the link)
           let cvIndexData = null;
           if (cvData.plain_text) {
@@ -225,14 +224,32 @@ async function findCandidatesFallback(
     
     if (!cv?.plain_text) continue;
 
-    // Minimal skills for fallback mode
-    const candidateSkills = ['javascript']; // Basic fallback skill
+    // STRICT MODE: Parse CV skills instead of using fallback
+    let candidateSkills: string[] = [];
+    
+    if (cv?.plain_text) {
+      try {
+        const cvData = JSON.parse(cv.plain_text);
+        if (cvData.skills && Array.isArray(cvData.skills)) {
+          candidateSkills = cvData.skills.map((s: string) => s.toLowerCase().trim());
+        }
+        if (cvData.must_have && Array.isArray(cvData.must_have)) {
+          candidateSkills.push(...cvData.must_have.map((s: string) => s.toLowerCase().trim()));
+        }
+      } catch (error) {
+        console.warn(`Error parsing CV data for ${emp.first_name}:`, error);
+      }
+    }
+    
     const normalizedRequired = requiredSkills.map(s => s.toLowerCase().trim());
     const matchedSkills = normalizedRequired.filter(required => 
-      candidateSkills.includes(required)
+      candidateSkills.some(candidate => 
+        candidate.includes(required) || required.includes(candidate)
+      )
     );
 
-    if (matchedSkills.length > 0) {
+    // STRICT MODE: All must_have skills must be present
+    if (matchedSkills.length === normalizedRequired.length) {
         // Get CV index data
         const { data: cvIndexDbData } = await supabase
           .from('cv_index')
@@ -360,10 +377,10 @@ async function getSimpleMatches(
       // 3. Remove duplicates and normalize
       const uniqueSkills = Array.from(new Set(allCandidateSkills.map(s => s.toLowerCase().trim())));
       
-      // 4. If no skills found from any source, use fallback
+      // 4. If no skills found from any source, skip this employee (STRICT MODE)
       if (uniqueSkills.length === 0) {
-        uniqueSkills.push(...['react', 'javascript', 'typescript', 'nodejs']);
-        console.log(`🎭 Fallback skills for ${emp.first_name}: ${uniqueSkills.join(', ')}`);
+        console.log(`❌ No skills found for ${emp.first_name}, skipping (STRICT MODE)`);
+        continue;
       }
       
       // 5. Calculate skill matching
@@ -380,7 +397,8 @@ async function getSimpleMatches(
       console.log(`✅ ${emp.first_name}: ${matchedSkills.length}/${normalizedRequired.length} = ${Math.round(matchScore * 100)}% match`);
       console.log(`🎯 Matched: [${matchedSkills.join(', ')}] vs Required: [${normalizedRequired.join(', ')}]`);
 
-      if (matchedSkills.length > 0) {
+      // STRICT MODE: All must_have skills must be present
+      if (matchedSkills.length === normalizedRequired.length) {
         // Parse CV index data for display
         let cvIndexParsed: any = { message: 'CV not indexed yet' };
         if (cvIndexData?.plain_text) {
