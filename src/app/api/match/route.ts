@@ -463,7 +463,7 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    console.log(`🔍 Advanced search: ${role} (${seniority}) with must-have: ${must_have.join(', ')}`);
+    console.log(`🔍 Advanced search: ${role} (${seniority}) with must-have: ${must_have.join(', ')} [STRICT MODE ACTIVE]`);
 
     // Phase 1: Try exact match first
     let candidates = await findCandidates(sb, seniority, must_have, role, 'exact');
