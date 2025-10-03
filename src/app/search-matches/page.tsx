@@ -321,49 +321,6 @@ export default function SearchMatchesPage() {
     setLastRequest(null);
   };
 
-  const testConnection = async () => {
-    setLoading(true);
-    setError('');
-    
-    try {
-      showToast('🔍 Probando conexión con n8n...', 'info');
-      
-      const response = await sendToN8N('https://laucho.app.n8n.cloud/webhook-test/mind-intake', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          text: 'test de conexión',
-          channel_id: 'web app'
-        }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('🚨 n8n webhook no registrado - Ejecuta el workflow primero');
-        }
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.code === 404 && result.message?.includes('not registered')) {
-        throw new Error('🚨 n8n no está activo - Ejecuta el workflow en la plataforma n8n');
-      }
-
-      showToast('✅ Conexión con n8n exitosa', 'success');
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error de conexión';
-      setError(errorMessage);
-      showToast(`❌ ${errorMessage}`, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div>
@@ -414,14 +371,6 @@ export default function SearchMatchesPage() {
                   className="btn btn-outline"
                 >
                   🗑️ Limpiar
-                </button>
-                
-                <button
-                  onClick={testConnection}
-                  disabled={loading}
-                  className="btn btn-secondary"
-                >
-                  🔗 Probar Conexión
                 </button>
                 
                 <button
