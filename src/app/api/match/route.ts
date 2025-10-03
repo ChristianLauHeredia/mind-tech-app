@@ -397,7 +397,6 @@ async function getSimpleMatches(
           email: emp.email,
           location: emp.location,
           seniority: emp.seniority,
-          cv_index: cvIndexParsed, // CV index data instead of cv_link
           match_score: matchScore,
           matched_skills: matchedSkills,
           match_quality: 'hybrid' // NEW: Uses both DB + CV skills
@@ -471,14 +470,13 @@ export async function POST(req: NextRequest) {
     const topCandidates = candidates.slice(0, 30);
     console.log(`✅ Final result: ${topCandidates.length} candidates (max 30)`);
 
-    // Format response with actual candidate data including CV index
+    // Format response for n8n compatibility
     const response = topCandidates.map(candidate => ({
       employee_id: candidate.employee_id,
       name: candidate.name,
       email: candidate.email,
       location: candidate.location,
       seniority: candidate.seniority,
-      cv_index: candidate.cv_index, // Full CV data instead of cv_link
       match_score: candidate.matched_must_have.length / must_have.length, // Calculate score as % of matched skills
       matched_skills: candidate.matched_must_have,
       match_quality: candidate.match_quality
