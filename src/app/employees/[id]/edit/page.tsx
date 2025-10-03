@@ -204,28 +204,13 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
 
       if (agentResponse.ok) {
         const agentResult = await agentResponse.json();
+        console.log('🤖 n8n agent response:', agentResult);
         
-        // Store the CV data
-        const indexResponse = await fetch('/api/cv-index-simple', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            employee_id: params.id,
-            cv_data: JSON.stringify(agentResult.cv_data)
-          }),
-        });
-
-        if (indexResponse.ok) {
-          showToast('✅ CV re-indexado exitosamente', 'success');
-          // Refresh page to show updated data
-          setTimeout(() => window.location.reload(), 1000);
-        } else {
-          showToast('❌ Error al guardar datos del CV', 'error');
-        }
+        showToast('✅ CV enviado a n8n para procesamiento. La indexación se completará automáticamente.', 'success');
+        // Refresh page to show updated data after n8n processes
+        setTimeout(() => window.location.reload(), 2000);
       } else {
-        showToast('❌ Error al procesar CV con agente', 'error');
+        showToast('❌ Error al procesar CV con agente n8n', 'error');
       }
     } catch (error) {
       console.error('Error re-indexing CV:', error);

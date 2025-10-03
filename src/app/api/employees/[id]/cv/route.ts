@@ -73,26 +73,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         const agentResult = await agentResponse.json();
         console.log(`✅ Agent extraction successful for employee ${params.id}`);
         
-        // Store the extracted CV data in cv_index
-        const cvIndexResponse = await fetch(`${req.nextUrl.origin}/api/cv-index-simple`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': req.headers.get('Authorization') || ''
-          },
-          body: JSON.stringify({ 
-            employee_id: params.id,
-            cv_data: JSON.stringify(agentResult.cv_data)
-          })
-        });
-
-        if (cvIndexResponse.ok) {
-          indexResult = await cvIndexResponse.json();
-          console.log(`✅ CV data stored successfully for employee ${params.id}`);
-        } else {
-          console.log(`⚠️ Failed to store CV data for employee ${params.id}`);
-          indexResult = { error: 'Failed to store extracted CV data' };
-        }
+        // n8n will handle the CV indexing automatically
+        console.log(`✅ CV sent to n8n for processing. Indexing will complete automatically for employee ${params.id}`);
+        indexResult = { message: 'CV sent to n8n for automatic processing' };
       } else {
         console.log(`⚠️ Agent extraction failed for employee ${params.id}:`, agentResponse.statusText);
         indexResult = { error: 'Agent extraction failed' };
