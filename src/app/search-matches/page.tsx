@@ -96,9 +96,10 @@ export default function SearchMatchesPage() {
       
       if (selectedFile) {
         // Send file to n8n
-        console.log('📄 Debug - Sending file:', selectedFile.name, selectedFile.type, selectedFile.size);
+        console.log('📄 Debug - Sending file:', selectedFile.name, selectedFile.type, selectedFile.size, 'with channel_id: web app');
         const formData = new FormData();
         formData.append('file', selectedFile);
+        formData.append('channel_id', 'web app');
         if (searchText.trim()) {
           formData.append('text', searchText.trim());
         }
@@ -112,7 +113,7 @@ export default function SearchMatchesPage() {
         });
       } else {
         // Send text only
-        console.log('📝 Debug - Sending text only:', searchText.trim().substring(0, 50) + '...');
+        console.log('📝 Debug - Sending text only:', searchText.trim().substring(0, 50) + '...', 'with channel_id: web app');
         response = await sendToN8N('https://laucho.app.n8n.cloud/webhook-test/mind-intake', {
           method: 'POST', // MUST BE POST - NO GET ALLOWED  
           headers: {
@@ -120,7 +121,8 @@ export default function SearchMatchesPage() {
             'Accept': 'application/json',
           },
           body: JSON.stringify({
-            text: searchText.trim()
+            text: searchText.trim(),
+            channel_id: 'web app'
           }),
         });
       }
@@ -130,41 +132,84 @@ export default function SearchMatchesPage() {
       }
 
       const result = await response.json();
+      console.log('📨 Raw n8n response:', result);
       
-      // Parse the n8n response
-      let searchResults: SearchResponse;
+      // Parse n8n response to extract structured outputs
+      let structuredOutputs: any[] = [];
       
-      if (result.body?.text && typeof result.body.text === 'string') {
-        // If n8n returns the raw text, we need to simulate processing
-        searchResults = {
-          matches: [],
-          search_query: result.body.text,
-          total_found: 0,
-          processing_time: Date.now()
-        };
-        
-        showToast('⚠️ n8n recibió el texto pero no procesó los matches aún', 'info');
-      } else if (result.matches && Array.isArray(result.matches)) {
-        // If n8n already processed and returned matches
-        searchResults = {
-          matches: result.matches.slice(0, 5), // Max 5 matches
-          search_query: result.search_query || searchText,
-          total_found: result.matches.length,
-          processing_time: result.processing_time
-        };
-        
-        showToast(`✅ Encontrados ${searchResults.matches.length} matches`, 'success');
+      if (Array.isArray(result)) {
+        // n8n returns array of {output: {...}}
+        structuredOutputs = result.map((item: any) => item.output || item);
+        console.log('📝 Extracted outputs:', structuredOutputs);
+      } else if (result.outputs && Array.isArray(result.outputs)) {
+        structuredOutputs = result.outputs;
       } else {
-        // Fallback: simulate processing
-        searchResults = {
-          matches: [],
-          search_query: searchText,
-          total_found: 0,
-          processing_time: Date.now()
-        };
-        
-        showToast('📝 Texto procesado por n8n, esperando matches...', 'info');
+        showToast('⚠️ Respuesta de n8n no es válida', 'error');
+        setLoading(false);
+        return;
       }
+      
+      // Now call our /api/match endpoint for each output
+      const allCandidates: MatchResult[] = [];
+      
+      showToast(`🔍 Buscando candidatos para ${structuredOutputs.length} perfiles...`, 'info');
+      
+      for (const output of structuredOutputs) {
+        try {
+          console.log('🎯 Calling /api/match with:', output);
+          
+          const matchResponse = await fetch('/api/match', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(output)
+          });
+          
+          if (!matchResponse.ok) {
+            console.warn(`⚠️ Match API failed for output:`, output);
+            continue;
+          }
+          
+          const matchData = await matchResponse.json();
+          console.log('✅ Match result:', matchData);
+          
+          // Transform match data to our format
+          const candidates = matchData.map((candidate: any) => ({
+            id: candidate.employee_id,
+            name: candidate.name,
+            email: candidate.email,
+            location: candidate.location || '',
+            seniority: candidate.seniority,
+            last_project: '', // Not provided in current API
+            cv_link: candidate.cv_link || '',
+            parsed_skills: {
+              must_have: candidate.matched_skills || [],
+              nice_to_have: []
+            },
+            match_score: candidate.match_score || 0.5
+          }));
+          
+          allCandidates.push(...candidates);
+          
+        } catch (error) {
+          console.warn(`⚠️ Error calling match API for output:`, error);
+        }
+      }
+      
+      // Sort by match score and take top 5
+      const topCandidates = allCandidates
+        .sort((a, b) => (b.match_score || 0) - (a.match_score || 0))
+        .slice(0, 5);
+      
+      const searchResults: SearchResponse = {
+        matches: topCandidates,
+        search_query: searchText,
+        total_found: topCandidates.length,
+        processing_time: Date.now()
+      };
+      
+      showToast(`✅ Encontrados ${searchResults.matches.length} candidatos`, 'success');
 
       setMatches(searchResults.matches);
       setProcessedData(searchResults);

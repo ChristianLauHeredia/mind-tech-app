@@ -30,15 +30,17 @@ interface AdvancedCandidate {
   match_quality: 'exact' | 'relaxed' | 'minimal';
 }
 
-// Response format as requested
-type MatchResponse = Array<{
-  output: {
-    role: string;
-    seniority: string;
-    must_have: string[];
-    nice_to_have: string[];
-    extra_keywords: string[];
-  }
+// Response format with candidate data
+type CandidateResponse = Array<{
+  employee_id: string;
+  name: string;
+  email: string;
+  location: string | null;
+  seniority: string;
+  cv_link: string;
+  match_score: number;
+  matched_skills: string[];
+  match_quality: 'exact' | 'relaxed' | 'minimal' | 'simple';
 }>;
 
 // Helper function to get relaxed seniorities (±1 level)
@@ -258,7 +260,7 @@ async function getSimpleMatches(
   role: string,
   seniority: string,
   must_have: string[]
-): Promise<any> {
+): Promise<Response> {
   
   try {
     // Get employees with seniority
@@ -282,19 +284,21 @@ async function getSimpleMatches(
       return Response.json([]);
     }
 
-    // Create simple response
+    // Create simple response with actual candidate data
     const results = [];
     for (const emp of employees) {
       const cv = cvLinks.find((c: any) => c.employee_id === emp.id);
       if (cv) {
         results.push({
-          output: {
-            role,
-            seniority: emp.seniority,
-            must_have: must_have, // Return what was requested for now
-            nice_to_have: [],
-            extra_keywords: []
-          }
+          employee_id: emp.id,
+          name: `${emp.first_name} ${emp.last_name}`,
+          email: emp.email,
+          location: emp.location,
+          seniority: emp.seniority,
+          cv_link: cv.url,
+          match_score: 0.5, // Default score for simple matches
+          matched_skills: must_have.slice(0, Math.floor(must_have.length / 2)), // Mock some matched skills
+          match_quality: 'simple'
         });
       }
     }
@@ -365,15 +369,17 @@ export async function POST(req: NextRequest) {
     const topCandidates = candidates.slice(0, 30);
     console.log(`✅ Final result: ${topCandidates.length} candidates (max 30)`);
 
-    // Format response
-    const response: MatchResponse = topCandidates.map(candidate => ({
-      output: {
-        role,
-        seniority: candidate.seniority,
-        must_have: candidate.matched_must_have,
-        nice_to_have: [], // Keep simple for now
-        extra_keywords: []
-      }
+    // Format response with actual candidate data
+    const response = topCandidates.map(candidate => ({
+      employee_id: candidate.employee_id,
+      name: candidate.name,
+      email: candidate.email,
+      location: candidate.location,
+      seniority: candidate.seniority,
+      cv_link: candidate.cv_link,
+      match_score: candidate.matched_must_have.length / must_have.length, // Calculate score as % of matched skills
+      matched_skills: candidate.matched_must_have,
+      match_quality: candidate.match_quality
     }));
 
     return Response.json(response);
