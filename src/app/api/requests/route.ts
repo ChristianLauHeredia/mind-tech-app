@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`💾 Saving request: "${content.substring(0, 50)}..." with ${candidates.length} candidates`);
 
-    // Insert the request
+    // Insert the request with candidates directly in the same record
     const { data: requestData, error: requestError } = await supabase
       .from('requests')
       .insert({
@@ -80,7 +80,8 @@ export async function POST(req: NextRequest) {
         attachment_file_id,
         parsed_skills,
         seniority_hint,
-        role_hint
+        role_hint,
+        candidates // Store candidates directly as JSON
       })
       .select('id')
       .single();
@@ -93,46 +94,11 @@ export async function POST(req: NextRequest) {
       }, { status: 500 });
     }
 
-    const requestId = requestData.id;
-
-    // Insert matches for each candidate with individual summaries from n8n
-    const matchesData = candidates.map((candidate, index) => ({
-      request_id: requestId,
-      employee_id: candidate.employee_id,
-      score: candidate.score || Math.max(0.1, 1 - (index * 0.1)), // Use n8n score or default decreasing score
-      summary: candidate.summary, // Individual summary from n8n
-      reason_features: {
-        source: 'n8n_match',
-        match_order: index + 1,
-        total_candidates: candidates.length,
-        match_details: candidate.match_details || null,
-        n8n_summary: candidate.summary // Store summary in reason_features for easy access
-      }
-    }));
-
-    const { error: matchesError } = await supabase
-      .from('matches')
-      .insert(matchesData);
-
-    if (matchesError) {
-      console.error('Error creating matches:', matchesError);
-      // Clean up the request if matches fail
-      await supabase
-        .from('requests')
-        .delete()
-        .eq('id', requestId);
-        
-      return Response.json({ 
-        error: 'Failed to save matches',
-        details: matchesError.message 
-      }, { status: 500 });
-    }
-
-    console.log(`✅ Request saved with ID: ${requestId}, ${matchesData.length} matches created`);
+    console.log(`✅ Request saved with ID: ${requestData.id} with ${candidates.length} candidates`);
 
     return Response.json({
       success: true,
-      request_id: requestId,
+      request_id: requestData.id,
       candidates_count: candidates.length
     });
 
@@ -165,7 +131,7 @@ export async function GET(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Get requests with matches and candidate info
+    // Get requests with candidates stored directly
     const { data: requests, error } = await supabase
       .from('requests')
       .select(`
@@ -178,21 +144,7 @@ export async function GET(req: NextRequest) {
         seniority_hint,
         role_hint,
         created_at,
-        matches!inner (
-          request_id,
-          employee_id,
-          score,
-          summary,
-          reason_features,
-          employees (
-            id,
-            first_name,
-            last_name,
-            email,
-            seniority,
-            location
-          )
-        )
+        candidates
       `)
       .order('created_at', { ascending: false });
 

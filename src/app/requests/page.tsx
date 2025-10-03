@@ -2,21 +2,14 @@
 import { useState, useEffect } from 'react';
 
 interface Candidate {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  seniority: string;
-  location: string;
-}
-
-interface Match {
-  request_id: string;
   employee_id: string;
-  score: number;
   summary: string;
-  reason_features: any;
-  employees: Candidate;
+  score?: number;
+  match_details?: {
+    matched_skills?: string[];
+    seniority_match?: boolean;
+    role_match?: boolean;
+  };
 }
 
 interface Request {
@@ -35,7 +28,7 @@ interface Request {
   seniority_hint?: string;
   role_hint?: string;
   created_at: string;
-  matches: Match[];
+  candidates?: Candidate[];
 }
 
 interface RequestsResponse {
@@ -363,35 +356,45 @@ export default function RequestsPage() {
                           <div className="mb-3">
                             <div className="flex items-center gap-2 mb-2">
                               <span className="text-sm font-medium text-gray-700">Candidatos encontrados:</span>
-                              <span className="badge badge-primary">{request.matches?.length || 0}</span>
+                              <span className="badge badge-primary">{request.candidates?.length || 0}</span>
                             </div>
-                            {request.matches && request.matches.length > 0 && (
+                            {request.candidates && request.candidates.length > 0 && (
                               <div className="space-y-2">
-                                {request.matches.slice(0, 3).map((match, index) => (
-                                  <div key={match.employee_id} className="flex items-center gap-3 text-sm bg-gray-50 p-2 rounded">
-                                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                                      <span className="font-medium text-gray-900 truncate">
-                                        {match.employees?.first_name} {match.employees?.last_name}
+                                {request.candidates.slice(0, 3).map((candidate, index) => (
+                                  <div key={candidate.employee_id} className="bg-gray-50 p-3 rounded">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-sm font-medium text-gray-900">
+                                        Candidato {index + 1}
                                       </span>
-                                      <span className="text-gray-500 truncate">
-                                        ({match.employees?.seniority})
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
                                       <span className={`badge ${
-                                        match.score >= 0.8 ? 'badge-success' :
-                                        match.score >= 0.6 ? 'badge-primary' :
-                                        match.score >= 0.4 ? 'badge-warning' :
+                                        (candidate.score || 0.5) >= 0.8 ? 'badge-success' :
+                                        (candidate.score || 0.5) >= 0.6 ? 'badge-primary' :
+                                        (candidate.score || 0.5) >= 0.4 ? 'badge-warning' :
                                         'badge-gray'
                                       }`}>
-                                        {Math.round(match.score * 100)}%
+                                        {Math.round((candidate.score || 0.5) * 100)}%
                                       </span>
                                     </div>
+                                    <p className="text-xs text-gray-600 leading-relaxed">
+                                      {candidate.summary}
+                                    </p>
+                                    {candidate.match_details?.matched_skills && candidate.match_details.matched_skills.length > 0 && (
+                                      <div className="mt-2">
+                                        <span className="text-xs text-gray-500">Skills matchadas:</span>
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                          {candidate.match_details.matched_skills.map(skill => (
+                                            <span key={skill} className="badge badge-sm badge-gray text-xs">
+                                              {skill}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
-                                {request.matches.length > 3 && (
+                                {request.candidates.length > 3 && (
                                   <div className="text-xs text-gray-500 text-center">
-                                    +{request.matches.length - 3} candidatos más...
+                                    +{request.candidates.length - 3} candidatos más...
                                   </div>
                                 )}
                               </div>
