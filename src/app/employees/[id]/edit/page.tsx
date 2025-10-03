@@ -190,7 +190,7 @@ export default function EditEmployeePage({ params }: { params: { id: string } })
       }
       
       // Trigger n8n agent directly
-      const agentResponse = await fetch('https://laucho.app.n8n.cloud/webhook/mind-intake', {
+      const agentResponse = await fetch('https://laucho.app.n8n.cloud/webhook/index-cv', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

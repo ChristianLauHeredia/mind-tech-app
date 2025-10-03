@@ -57,7 +57,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       console.log(`🤖 Calling n8n agent to extract CV for employee ${params.id}`);
       
       // Call n8n agent to extract CV data
-      const agentResponse = await fetch('https://laucho.app.n8n.cloud/webhook/mind-intake', {
+      const agentResponse = await fetch('https://laucho.app.n8n.cloud/webhook/index-cv', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json'
