@@ -85,12 +85,6 @@ export default function SearchMatchesPage() {
     // Store the file for sending to n8n
     setSelectedFile(file);
     
-    // Debug: Check state after setting file
-    console.log('📄 File set in handler:', file.name);
-    setTimeout(() => {
-      console.log('📄 File state after timeout:', file.name, 'button should be enabled');
-    }, 100);
-    
     // Don't clear search completely - just clear results
     setMatches([]);
     setError('');
@@ -439,34 +433,12 @@ export default function SearchMatchesPage() {
                 </button>
                 
                 <button
-                  onClick={(e) => {
-                    console.log('🖱️ Button click:', { 
-                      loading, 
-                      searchText: searchText.trim(), 
-                      hasSearchText: !!searchText.trim(), 
-                      selectedFile: !!selectedFile,
-                      fileName: selectedFile?.name,
-                      shouldBeDisabled: loading || (!searchText.trim() && !selectedFile)
-                    });
-                    handleSearch();
-                  }}
+                  onClick={handleSearch}
                   disabled={loading || (!searchText.trim() && !selectedFile)}
                   className="btn btn-primary"
                   style={{ 
-                    opacity: (loading || (!searchText.trim() && !selectedFile)) ? 0.5 : 1,
                     backgroundColor: selectedFile ? '#10b981' : '#3b82f6',
                     borderColor: selectedFile ? '#059669' : '#2563eb'
-                  }}
-                  onMouseEnter={() => {
-                    console.log('🖱️ Button hover state:', { 
-                      loading, 
-                      searchText: `"${searchText}"`, 
-                      searchTextTrimmed: `"${searchText.trim()}"`,
-                      hasSearchText: !!searchText.trim(),
-                      selectedFile: !!selectedFile,
-                      fileName: selectedFile?.name,
-                      isDisabled: loading || (!searchText.trim() && !selectedFile)
-                    });
                   }}
                 >
                   {loading ? (
