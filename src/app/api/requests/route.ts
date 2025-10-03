@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    console.log(`💾 Saving request: "${content.substring(0, 50)}..." with ${candidate_ids.length} candidates`);
+    console.log(`💾 Saving request: "${content.substring(0, 50)}..." with ${candidates.length} candidates`);
 
     // Insert the request
     const { data: requestData, error: requestError } = await supabase
