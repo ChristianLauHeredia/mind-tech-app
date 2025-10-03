@@ -371,7 +371,7 @@ export default function SearchMatchesPage() {
       const response = await fetch('/api/requests?limit=1&offset=0', {
         credentials: 'include',
         headers: {
-          'Authorization': 'Basic ' + btoa(`${process.env.NEXT_PUBLIC_BASIC_AUTH_USER}:${process.env.NEXT_PUBLIC_BASIC_AUTH_PASS}`)
+          'Authorization': 'Basic ' + btoa('admin:password123')
         }
       });
       
