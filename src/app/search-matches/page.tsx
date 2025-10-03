@@ -227,22 +227,18 @@ export default function SearchMatchesPage() {
             console.warn(`⚠️ Match API failed for output:`, output);
             const errorData = await matchResponse.json().catch(() => ({}));
             console.warn(`❌ Error details:`, errorData);
-            
-            // Show user-friendly error message
-            if (errorData.error_type === 'no_employees') {
-              showToast(`❌ No hay empleados con seniority: ${output.seniority}`, 'error');
-            } else if (errorData.error_type === 'no_cvs') {
-              showToast(`❌ No hay CVs para empleados con seniority: ${output.seniority}`, 'error');
-            } else if (errorData.error_type === 'no_skill_matches') {
-              showToast(`❌ No se encontraron matches para skills: ${output.must_have?.join(', ')}`, 'error');
-            } else {
-              showToast(`❌ Error en búsqueda: ${errorData.message || 'Error desconocido'}`, 'error');
-            }
+            showToast(`❌ Error en búsqueda: ${errorData.message || 'Error desconocido'}`, 'error');
             continue;
           }
           
           const matchData = await matchResponse.json();
           console.log('✅ Match result:', matchData);
+          
+          // If no candidates found, log it but continue (don't show error)
+          if (!matchData || matchData.length === 0) {
+            console.log(`ℹ️ No candidates found for ${output.seniority} with skills: ${output.must_have?.join(', ')}`);
+            continue;
+          }
           
           // Transform match data to our format
           const candidates = matchData.map((candidate: any) => ({

@@ -307,12 +307,7 @@ async function getSimpleMatches(
 
     if (empError || !employees?.length) {
       console.log(`❌ No employees found with seniority: ${seniority}`);
-      return Response.json({
-        candidates: [],
-        message: `No employees found with seniority: ${seniority}`,
-        error_type: 'no_employees',
-        suggestions: ['Try different seniority level', 'Check if employees exist in database']
-      });
+      return Response.json([]); // Return empty array instead of error
     }
 
     // Get CV links for these employees
@@ -324,12 +319,7 @@ async function getSimpleMatches(
 
     if (cvError || !cvLinks?.length) {
       console.log(`❌ No CVs found for employees with seniority: ${seniority}`);
-      return Response.json({
-        candidates: [],
-        message: `No CVs found for employees with seniority: ${seniority}`,
-        error_type: 'no_cvs',
-        suggestions: ['Upload CVs for employees', 'Check CV indexing status', 'Verify CV links are valid']
-      });
+      return Response.json([]); // Return empty array instead of error
     }
 
     // Create hybrid response using BOTH DB skills + CV skills
@@ -419,17 +409,7 @@ async function getSimpleMatches(
     // Check if we found any candidates
     if (results.length === 0) {
       console.log(`❌ No skill matches found for ${seniority} with skills: ${must_have.join(', ')}`);
-      return Response.json({
-        candidates: [],
-        message: `No skill matches found for ${seniority} with skills: ${must_have.join(', ')}`,
-        error_type: 'no_skill_matches',
-        suggestions: [
-          'Try different skills',
-          'Check if employee skills are properly stored',
-          'Verify CV indexing includes skill extraction',
-          'Try broader skill terms'
-        ]
-      });
+      return Response.json([]); // Return empty array instead of error
     }
 
     return Response.json(results.slice(0, 30)); // Max 30
@@ -501,22 +481,7 @@ export async function POST(req: NextRequest) {
       const simpleData = await simpleResult.json();
       if (!simpleData || simpleData.length === 0) {
         console.log('❌ No candidates found in any search phase');
-        return Response.json({
-          candidates: [],
-          message: `No candidates found for ${role} (${seniority}) with skills: ${must_have.join(', ')}`,
-          search_phases: {
-            exact_seniority: 'No matches',
-            relaxed_seniority: 'No matches', 
-            relaxed_skills: 'No matches',
-            simple_fallback: 'No matches'
-          },
-          suggestions: [
-            'Try different seniority level',
-            'Reduce required skills',
-            'Check if employees have CVs indexed',
-            'Verify skills are properly stored in database'
-          ]
-        });
+        return Response.json([]); // Return empty array instead of error
       }
       
       return simpleResult;
