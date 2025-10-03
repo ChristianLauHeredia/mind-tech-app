@@ -145,9 +145,14 @@ interface MatchRequest {
 
 #### Algoritmo de Matching
 
+##### **Modo Estricto (ACTIVO)**
+- **Skills Matching**: TODOS los `must_have` deben estar presentes
+- **Sin Compromisos**: Solo devuelve candidatos que cumplan 100% de requisitos
+- **Manejo de Errores**: Nunca devuelve 500, siempre array vacío si no hay matches
+
 ##### Fase 1: Exact Matching
 1. **Seniority Matching**: Exacto o ±1 nivel
-2. **Skills Intersection**: Al menos 50% de `must_have` debe coincidir
+2. **Skills Intersection**: TODOS los `must_have` deben coincidir (modo estricto)
 3. **Limit**: Máximo 30 candidatos
 
 ##### Fase 2: Relaxation (si 0 resultados)
@@ -257,7 +262,7 @@ interface TextSearch {
 }
 
 // Envio a n8n
-POST https://laucho.app.n8n.cloud/webhook-test/mind-intake
+POST https://laucho.app.n8n.cloud/webhook/match-candidates
 Content-Type: application/json
 {
   "text": "need senior react developer for fintech",
@@ -279,7 +284,7 @@ formData.append('file', selectedFile);
 formData.append('text', 'Additional context');
 formData.append('channel_id', 'web app');
 
-POST https://laucho.app.n8n.cloud/webhook-test/mind-intake
+POST https://laucho.app.n8n.cloud/webhook/match-candidates
 Content-Type: multipart/form-data
 ```
 
