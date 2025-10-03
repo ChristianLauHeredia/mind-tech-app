@@ -122,6 +122,7 @@ export default function SearchMatchesPage() {
     setError('');
     setMatches([]);
     setProcessedData(null);
+    setLastRequest(null); // Limpiar la búsqueda anterior
 
     try {
       showToast('🔍 Procesando con n8n...', 'info');
