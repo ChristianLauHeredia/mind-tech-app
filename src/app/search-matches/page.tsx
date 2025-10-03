@@ -260,6 +260,8 @@ export default function SearchMatchesPage() {
             body: JSON.stringify(output)
           });
           
+          console.log(`🔍 Match response status: ${matchResponse.status} ${matchResponse.ok ? 'OK' : 'ERROR'}`);
+          
           if (!matchResponse.ok) {
             console.warn(`⚠️ Match API failed for output:`, output);
             const errorData = await matchResponse.json().catch(() => ({}));
@@ -307,7 +309,7 @@ export default function SearchMatchesPage() {
       
       // Show message if no candidates found
       if (topCandidates.length === 0) {
-        showToast('❌ No se encontraron candidatos que coincidan con los criterios', 'error');
+        showToast('ℹ️ No se encontraron candidatos que coincidan con los criterios de búsqueda', 'info');
       } else {
         showToast(`✅ Se encontraron ${topCandidates.length} candidatos`, 'success');
       }
