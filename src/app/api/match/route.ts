@@ -137,12 +137,19 @@ async function findCandidates(
       }
       
       console.log(`🔥 HYBRID TOTAL skills for ${emp.first_name}: ${uniqueSkills.join(', ')}`);
+      console.log(`🎯 Required skills: ${requiredSkills.join(', ')}`);
 
       // Check intersection with required skills using hybrid skills
       const normalizedRequired = requiredSkills.map(s => s.toLowerCase().trim());
       const matchedSkills = normalizedRequired.filter(required => 
         uniqueSkills.some(candidate => 
-          candidate.includes(required) || required.includes(candidate)
+          candidate === required || 
+          candidate.includes(required) || 
+          required.includes(candidate) ||
+          // Handle common variations
+          (required === 'node' && (candidate === 'nodejs' || candidate === 'node.js')) ||
+          (required === 'nodejs' && (candidate === 'node' || candidate === 'node.js')) ||
+          (required === 'node.js' && (candidate === 'node' || candidate === 'nodejs'))
         )
       );
 
@@ -377,6 +384,9 @@ async function getSimpleMatches(
       // 3. Remove duplicates and normalize
       const uniqueSkills = Array.from(new Set(allCandidateSkills.map(s => s.toLowerCase().trim())));
       
+      console.log(`🔥 SIMPLE MATCH skills for ${emp.first_name}: ${uniqueSkills.join(', ')}`);
+      console.log(`🎯 Required skills: ${must_have.join(', ')}`);
+      
       // 4. If no skills found from any source, skip this employee (STRICT MODE)
       if (uniqueSkills.length === 0) {
         console.log(`❌ No skills found for ${emp.first_name}, skipping (STRICT MODE)`);
@@ -387,7 +397,13 @@ async function getSimpleMatches(
       const normalizedRequired = must_have.map(s => s.toLowerCase().trim());
       const matchedSkills = normalizedRequired.filter(required => 
         uniqueSkills.some(candidate => 
-          candidate.includes(required) || required.includes(candidate)
+          candidate === required || 
+          candidate.includes(required) || 
+          required.includes(candidate) ||
+          // Handle common variations
+          (required === 'node' && (candidate === 'nodejs' || candidate === 'node.js')) ||
+          (required === 'nodejs' && (candidate === 'node' || candidate === 'node.js')) ||
+          (required === 'node.js' && (candidate === 'node' || candidate === 'nodejs'))
         )
       );
       
