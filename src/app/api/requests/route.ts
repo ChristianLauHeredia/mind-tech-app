@@ -24,7 +24,7 @@ async function enrichCandidates(candidates: any[], supabase: any) {
   }
 
   // Create a map for quick lookup
-  const employeeMap = new Map(employees?.map(emp => [emp.id, emp]) || []);
+  const employeeMap = new Map(employees?.map((emp: any) => [emp.id, emp]) || []);
 
   // Enrich candidates with employee data
   return candidates.map(candidate => {
