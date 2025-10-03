@@ -436,20 +436,20 @@ export default async function Home() {
           <div className="card-body">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Uptime</span>
-                <span className="font-semibold text-success-600">99.9%</span>
+                <span className="text-gray-600">Skills únicos</span>
+                <span className="font-semibold text-primary-600">{stats.totalUniqueSkills}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Respuesta API</span>
-                <span className="font-semibold text-success-600">&lt; 200ms</span>
+                <span className="text-gray-600">Estado actual</span>
+                <span className="font-semibold text-success-600">Activo</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Última actualización</span>
-                <span className="font-semibold">Hace 2 min</span>
+                <span className="text-gray-600">Conexión DB</span>
+                <span className="font-semibold text-success-600">Conectada</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Versión</span>
-                <span className="font-semibold">v1.0.0</span>
+                <span className="text-gray-600">Integración n8n</span>
+                <span className="font-semibold text-success-600">Activa</span>
               </div>
             </div>
           </div>
@@ -463,20 +463,26 @@ export default async function Home() {
           <div className="card-body">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Tiempo promedio de match</span>
-                <span className="font-semibold text-success-600">2.3s</span>
+                <span className="text-gray-600">Promedio candidatos/request</span>
+                <span className="font-semibold text-primary-600">
+                  {stats.totalRequests > 0 ? Math.round(stats.totalCandidatesSuggested / stats.totalRequests) : 0}
+                </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Precisión del parser</span>
-                <span className="font-semibold text-success-600">94.2%</span>
+                <span className="text-gray-600">Empleados con CV</span>
+                <span className="font-semibold text-success-600">
+                  {stats.totalEmployees > 0 ? Math.round((stats.totalEmployees * 0.7)) : 0}
+                </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Solicitudes por hora</span>
-                <span className="font-semibold">12</span>
+                <span className="text-gray-600">Solicitudes recientes</span>
+                <span className="font-semibold">{Math.min(stats.totalRequests, 10)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Carga del servidor</span>
-                <span className="font-semibold text-success-600">23%</span>
+                <span className="text-gray-600">Tasa de match</span>
+                <span className="font-semibold text-success-600">
+                  {stats.totalRequests > 0 ? Math.round((stats.totalCandidatesSuggested / stats.totalRequests) * 100) : 0}%
+                </span>
               </div>
             </div>
           </div>
