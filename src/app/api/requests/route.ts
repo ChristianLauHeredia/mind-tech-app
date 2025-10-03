@@ -1,7 +1,28 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
+
+// Schema for POST requests from n8n
+const RequestSchema = z.object({
+  requester: z.string().optional(),
+  channel_id: z.string().optional(),
+  content: z.string(),
+  parsed_skills: z.any().optional(),
+  seniority_hint: z.string().optional(),
+  role_hint: z.string().optional(),
+  candidates: z.array(z.object({
+    employee_id: z.string(),
+    summary: z.string(),
+    score: z.number(),
+    match_details: z.object({
+      matched_skills: z.array(z.string()),
+      seniority_match: z.boolean(),
+      role_match: z.boolean()
+    })
+  }))
+});
 
 /**
  * Enriches candidate data with employee information from database
@@ -120,6 +141,84 @@ export async function GET(req: NextRequest) {
 
   } catch (error) {
     console.error('Get requests error:', error);
+    return Response.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    // Validate configuration
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return Response.json({ 
+        error: 'Database not configured. Please configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.' 
+      }, { status: 500 });
+    }
+
+    // Parse and validate input
+    const body = await req.json();
+    const validatedInput = RequestSchema.parse(body);
+    
+    // Apply defaults for optional fields
+    const requestData = {
+      requester: validatedInput.requester || 'n8n',
+      channel_id: validatedInput.channel_id || 'webhook',
+      content: validatedInput.content,
+      parsed_skills: validatedInput.parsed_skills,
+      seniority_hint: validatedInput.seniority_hint,
+      role_hint: validatedInput.role_hint,
+      candidates: validatedInput.candidates
+    };
+
+    // Create Supabase client
+    const supabase = createClient(
+      process.env.SUPABASE_URL!, 
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    console.log(`📝 Saving request with ${requestData.candidates.length} candidates`);
+
+    // Insert request into database
+    const { data: request, error } = await supabase
+      .from('requests')
+      .insert({
+        requester: requestData.requester,
+        channel_id: requestData.channel_id,
+        content: requestData.content,
+        parsed_skills: requestData.parsed_skills,
+        seniority_hint: requestData.seniority_hint,
+        role_hint: requestData.role_hint,
+        candidates: requestData.candidates
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error saving request:', error);
+      return Response.json({ 
+        error: 'Failed to save request',
+        details: error.message
+      }, { status: 500 });
+    }
+
+    console.log(`✅ Request saved with ID: ${request.id}`);
+
+    return Response.json({
+      success: true,
+      request_id: request.id,
+      candidates_count: requestData.candidates.length
+    });
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return Response.json({ 
+        error: `Invalid input: ${error.errors.map(e => e.message).join(', ')}` 
+      }, { status: 400 });
+    }
+    
+    console.error('POST requests error:', error);
     return Response.json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'
