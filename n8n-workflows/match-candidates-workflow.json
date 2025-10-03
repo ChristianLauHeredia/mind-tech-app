@@ -1,0 +1,318 @@
+{
+  "name": "match-candidates-workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "match-candidates",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "match-candidates"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.file }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-input-type",
+      "name": "Check Input Type",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-vision-preview",
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 2000
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an expert HR assistant. Analyze the provided CV or job description and extract structured information about the role requirements.\n\nReturn a JSON object with the following structure:\n{\n  \"role\": \"specific job title\",\n  \"seniority\": \"JR|SSR|SR|STAFF|PRINC\",\n  \"must_have\": [\"skill1\", \"skill2\", \"skill3\"],\n  \"nice_to_have\": [\"skill4\", \"skill5\"],\n  \"extra_keywords\": [\"keyword1\", \"keyword2\"],\n  \"summary\": \"brief description of requirements\"\n}\n\nBe specific with technical skills and accurate with seniority levels."
+            },
+            {
+              "role": "user",
+              "content": "Analyze this CV/document and extract the job requirements:\n\n{{ $json.text || 'No additional text provided' }}\n\n{{ $json.file ? 'File content will be processed by vision API' : 'No file provided' }}"
+            }
+          ]
+        }
+      },
+      "id": "openai-vision",
+      "name": "OpenAI Vision Analysis",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 1500
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an expert HR assistant. Analyze the provided text and extract structured information about the role requirements.\n\nReturn a JSON object with the following structure:\n{\n  \"role\": \"specific job title\",\n  \"seniority\": \"JR|SSR|SR|STAFF|PRINC\",\n  \"must_have\": [\"skill1\", \"skill2\", \"skill3\"],\n  \"nice_to_have\": [\"skill4\", \"skill5\"],\n  \"extra_keywords\": [\"keyword1\", \"keyword2\"],\n  \"summary\": \"brief description of requirements\"\n}\n\nBe specific with technical skills and accurate with seniority levels."
+            },
+            {
+              "role": "user",
+              "content": "Analyze this job description and extract the requirements:\n\n{{ $json.text }}"
+            }
+          ]
+        }
+      },
+      "id": "openai-text",
+      "name": "OpenAI Text Analysis",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse OpenAI response and structure for matching\nconst openaiResponse = $input.first().json.message?.content || $input.first().json.choices?.[0]?.message?.content;\n\nif (!openaiResponse) {\n  throw new Error('No response from OpenAI');\n}\n\ntry {\n  // Try to parse JSON response\n  const parsedData = JSON.parse(openaiResponse);\n  \n  // Validate required fields\n  if (!parsedData.role || !parsedData.seniority || !parsedData.must_have) {\n    throw new Error('Missing required fields in OpenAI response');\n  }\n  \n  // Structure for matching API\n  const matchRequest = {\n    role: parsedData.role,\n    seniority: parsedData.seniority,\n    must_have: Array.isArray(parsedData.must_have) ? parsedData.must_have : [],\n    nice_to_have: Array.isArray(parsedData.nice_to_have) ? parsedData.nice_to_have : [],\n    extra_keywords: Array.isArray(parsedData.extra_keywords) ? parsedData.extra_keywords : []\n  };\n  \n  return {\n    json: {\n      matchRequest,\n      originalText: $('Webhook Trigger').first().json.text,\n      channelId: $('Webhook Trigger').first().json.channel_id || 'web app',\n      summary: parsedData.summary || ''\n    }\n  };\n} catch (error) {\n  throw new Error(`Failed to parse OpenAI response: ${error.message}`);\n}"
+      },
+      "id": "parse-response",
+      "name": "Parse OpenAI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.MIND_TECH_API_BASE_URL }}/api/match",
+        "authentication": "basicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "role",
+              "value": "={{ $json.matchRequest.role }}"
+            },
+            {
+              "name": "seniority",
+              "value": "={{ $json.matchRequest.seniority }}"
+            },
+            {
+              "name": "must_have",
+              "value": "={{ $json.matchRequest.must_have }}"
+            },
+            {
+              "name": "nice_to_have",
+              "value": "={{ $json.matchRequest.nice_to_have }}"
+            },
+            {
+              "name": "extra_keywords",
+              "value": "={{ $json.matchRequest.extra_keywords }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "call-match-api",
+      "name": "Call Match API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.MIND_TECH_API_BASE_URL }}/api/requests",
+        "authentication": "basicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "requester",
+              "value": "n8n-agent"
+            },
+            {
+              "name": "channel_id",
+              "value": "={{ $json.channelId }}"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.originalText }}"
+            },
+            {
+              "name": "parsed_skills",
+              "value": "={{ $json.matchRequest }}"
+            },
+            {
+              "name": "candidates",
+              "value": "={{ $json.candidates }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "save-request",
+      "name": "Save Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format final response\nconst matchResponse = $('Call Match API').first().json;\nconst saveResponse = $('Save Request').first().json;\n\nreturn {\n  json: {\n    success: true,\n    candidates: matchResponse.candidates || [],\n    total_found: matchResponse.total || 0,\n    request_id: saveResponse.request_id,\n    candidates_count: matchResponse.candidates?.length || 0,\n    message: matchResponse.message || 'Candidates found successfully'\n  }\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Input Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Input Type": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Vision Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI Text Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Vision Analysis": {
+      "main": [
+        [
+          {
+            "node": "Parse OpenAI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Text Analysis": {
+      "main": [
+        [
+          {
+            "node": "Parse OpenAI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse OpenAI Response": {
+      "main": [
+        [
+          {
+            "node": "Call Match API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Match API": {
+      "main": [
+        [
+          {
+            "node": "Save Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Request": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "mind-tech",
+      "name": "mind-tech"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

@@ -1,0 +1,280 @@
+{
+  "name": "index CV",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "index-cv",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "50688e0d-74e7-4b9d-9f10-0a9a624854ae",
+      "name": "Trigger (Webhook temporal)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        16
+      ],
+      "webhookId": "fe6939ab-1922-4612-bd86-38060b3e6f72"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "263e9610-bc5d-4d2c-8280-c221367a74a4",
+      "name": "Responder (Webhook)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1376,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "text": "=Eres un indexador de CVs. Lee el texto completo de un CV y devuelve EXCLUSIVAMENTE un JSON válido, sin texto adicional.\nNo infieras cosas que no estén claras. Normaliza arrays a minúsculas. Seniority debe ser uno de: \"JR\", \"SSR\", \"SR\", \"STAFF\", \"PRINC\" (si no es claro, elige conservadormente \"JR\").\nDevuelve SOLO este JSON (sin markdown, sin comentarios):\n{\n  \"role\": \"string\",\n  \"seniority\": \"JR|SSR|SR|STAFF|PRINC\",\n  \"skills\": [\"string\", \"...\"], \n  \"keywords\": [\"string\", \"...\"],\n  \"last_project\": \"string corta o ''\",\n  \"location\": \"string o ''\",\n  \"summary\": \"1 línea breve del perfil\"\n}\n\nNotas:\n- \"skills\": tecnologías y herramientas detectadas (minúsculas).\n- \"keywords\": metodologías, dominios, industrias, frameworks no principales.\n- Si no puedes determinar algo, deja \"\" o [].\n- No inventes correos, empresas o enlaces.\n\nCV:\n---\n{{ $json.data }}\n---\n\nSi no puedes acceder al documento o el texto está vacío, responde EXACTAMENTE:\n{\"error\":\"no_access_or_empty\"}\n",
+        "schemaType": "manual",
+        "inputSchema": "={\n  \"cv_data\": {\n    \"role\": \"string\",\n    \"seniority\": \"string\",\n    \"keywords\": \"array\",\n    \"summary\": \"string\",\n    \"last_project\": \"string\",\n    \"location\": \"string\"\n  }\n}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        592,
+        16
+      ],
+      "id": "aa9b20bd-1022-458d-8a69-2ec01efba8f5",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        592,
+        224
+      ],
+      "id": "b6cbea45-101d-4bd2-84e4-69b2f99026e7",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "sOsc63iYlMxarcdx",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.body.cv_url }}",
+          "mode": "url"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        160,
+        16
+      ],
+      "id": "347bcbc1-39a9-4c38-be48-ccb77de39925",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "qnzlL6dCsrT8xAKI",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        352,
+        16
+      ],
+      "id": "228b71de-0a8a-43b8-adc4-ca0fb3fdf29b",
+      "name": "Extract from File",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e90d1dac-3a6a-4116-bb30-9d731fc90ed1",
+              "name": "data",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        928,
+        16
+      ],
+      "id": "dff24142-683c-4129-b5cb-7d3968ea43e4",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mind-tech-app-h68q.vercel.app/api/cv-index-simple",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-vercel-protection-bypass",
+              "value": "GCOdY8B022oB65JPWqcPd89wghiMmMyn"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "employee_id",
+              "value": "={{ $('Trigger (Webhook temporal)').item.json.body.employee_id }}"
+            },
+            {
+              "name": "cv_data",
+              "value": "={{ $json.data }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b3cc1c27-7a9e-43d4-b457-ffc0e8795a04",
+      "name": "save cv index",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1168,
+        16
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "0hUVwut8IHFKpAJw",
+          "name": "Unnamed credential"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger (Webhook temporal)": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "save cv index",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save cv index": {
+      "main": [
+        [
+          {
+            "node": "Responder (Webhook)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1399008e-513e-439a-b510-a3e1526c2d82",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "263d2fcf3e8383b54eaa1065f2abd654e7afc715b3d3d3d30a23fd217465165b"
+  },
+  "id": "gmf8DDbUGsIGmxkU",
+  "tags": []
+}
