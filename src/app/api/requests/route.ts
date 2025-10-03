@@ -17,8 +17,17 @@ const RequestSchema = z.object({
   }).optional(),
   seniority_hint: z.enum(['JR', 'SSR', 'SR', 'STAFF', 'PRINC']).optional(),
   role_hint: z.string().optional(),
-  candidate_ids: z.array(z.string().uuid()).min(1), // Array of employee UUIDs
-  match_summary: z.string().optional()
+  candidates: z.array(z.object({
+    employee_id: z.string().uuid(),
+    summary: z.string().min(1), // Individual summary from n8n for this candidate
+    score: z.number().min(0).max(1).optional(), // Optional score if n8n provides it
+    match_details: z.object({
+      matched_skills: z.array(z.string()).optional(),
+      seniority_match: z.boolean().optional(),
+      role_match: z.boolean().optional()
+    }).optional()
+  })).min(1), // Array of candidate objects with their summary
+  overall_summary: z.string().optional() // Optional overall summary
 });
 
 type RequestData = z.infer<typeof RequestSchema>;
@@ -44,8 +53,8 @@ export async function POST(req: NextRequest) {
       parsed_skills,
       seniority_hint,
       role_hint,
-      candidate_ids,
-      match_summary
+      candidates,
+      overall_summary
     } = validatedData;
 
     // Create Supabase client
@@ -81,16 +90,18 @@ export async function POST(req: NextRequest) {
 
     const requestId = requestData.id;
 
-    // Insert matches for each candidate with calculated scores
-    const matchesData = candidate_ids.map((candidateId, index) => ({
+    // Insert matches for each candidate with individual summaries from n8n
+    const matchesData = candidates.map((candidate, index) => ({
       request_id: requestId,
-      employee_id: candidateId,
-      score: Math.max(0.1, 1 - (index * 0.1)), // Decreasing scores based on order (0.9, 0.8, 0.7...)
-      summary: `${match_summary || 'Auto-generated'} - Candidate ${index + 1}`,
+      employee_id: candidate.employee_id,
+      score: candidate.score || Math.max(0.1, 1 - (index * 0.1)), // Use n8n score or default decreasing score
+      summary: candidate.summary, // Individual summary from n8n
       reason_features: {
         source: 'n8n_match',
         match_order: index + 1,
-        total_candidates: candidate_ids.length
+        total_candidates: candidates.length,
+        match_details: candidate.match_details || null,
+        n8n_summary: candidate.summary // Store summary in reason_features for easy access
       }
     }));
 
@@ -117,8 +128,14 @@ export async function POST(req: NextRequest) {
     return Response.json({
       success: true,
       request_id: requestId,
-      candidates_count: candidate_ids.length,
-      message: 'Request and matches saved successfully'
+      candidates_count: candidates.length,
+      candidates: candidates.map(c => ({
+        employee_id: c.employee_id,
+        summary: c.summary,
+        score: c.score
+      })),
+      overall_summary: overall_summary,
+      message: 'Request and candidates saved successfully with individual summaries'
     });
 
   } catch (error) {
