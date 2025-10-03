@@ -1,6 +1,24 @@
 'use client';
 import { useState, useEffect } from 'react';
 
+interface Candidate {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  seniority: string;
+  location: string;
+}
+
+interface Match {
+  request_id: string;
+  employee_id: string;
+  score: number;
+  summary: string;
+  reason_features: any;
+  employees: Candidate;
+}
+
 interface Request {
   id: string;
   requester: string;
@@ -17,6 +35,7 @@ interface Request {
   seniority_hint?: string;
   role_hint?: string;
   created_at: string;
+  matches: Match[];
 }
 
 interface RequestsResponse {
@@ -339,6 +358,45 @@ export default function RequestsPage() {
                           <p className="text-sm text-gray-600 mb-3 leading-relaxed">
                             {truncateText(request.content)}
                           </p>
+                          
+                          {/* Candidatos encontrados */}
+                          <div className="mb-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-sm font-medium text-gray-700">Candidatos encontrados:</span>
+                              <span className="badge badge-primary">{request.matches?.length || 0}</span>
+                            </div>
+                            {request.matches && request.matches.length > 0 && (
+                              <div className="space-y-2">
+                                {request.matches.slice(0, 3).map((match, index) => (
+                                  <div key={match.employee_id} className="flex items-center gap-3 text-sm bg-gray-50 p-2 rounded">
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                      <span className="font-medium text-gray-900 truncate">
+                                        {match.employees?.first_name} {match.employees?.last_name}
+                                      </span>
+                                      <span className="text-gray-500 truncate">
+                                        ({match.employees?.seniority})
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <span className={`badge ${
+                                        match.score >= 0.8 ? 'badge-success' :
+                                        match.score >= 0.6 ? 'badge-primary' :
+                                        match.score >= 0.4 ? 'badge-warning' :
+                                        'badge-gray'
+                                      }`}>
+                                        {Math.round(match.score * 100)}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                                {request.matches.length > 3 && (
+                                  <div className="text-xs text-gray-500 text-center">
+                                    +{request.matches.length - 3} candidatos más...
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                           
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4 text-xs text-gray-500">
